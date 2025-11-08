@@ -60,7 +60,7 @@ class _SplashPageState extends State<SplashPage> {
             Icon(Icons.restaurant, color: Colors.white, size: 80),
             SizedBox(height: 20),
             Text(
-              "Flutter CX App",
+              "Restaurant Survey App",
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 26,

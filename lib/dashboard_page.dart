@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_cxapp/login_page.dart';
+import 'package:flutter_cxapp/restaurant_details_customer.dart';
 import 'package:flutter_cxapp/restaurant_details_page.dart';
 import 'package:flutter_cxapp/profile_page_customer.dart'; // ✅ Added import
 
@@ -315,7 +316,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                                   context,
                                                   MaterialPageRoute(
                                                     builder: (_) =>
-                                                        RestaurantDetailsPage(
+                                                        RestaurantDetailsCustomerPage(
                                                             restaurantId:
                                                                 r["id"]),
                                                   ),
