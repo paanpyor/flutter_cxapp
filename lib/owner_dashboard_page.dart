@@ -4,8 +4,10 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_cxapp/add_restaurant_page.dart';
+import 'package:flutter_cxapp/login_page.dart';
 import 'package:flutter_cxapp/restaurant_details_owner.dart';
 import 'profile_page_owner.dart';
+
 
 class OwnerDashboardPage extends StatefulWidget {
   const OwnerDashboardPage({super.key});
@@ -131,6 +133,15 @@ class _OwnerDashboardPageState extends State<OwnerDashboardPage> {
       );
     }
   }
+    Future<void> _logout() async {
+    await _auth.signOut();
+    if (mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginPage()),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -145,13 +156,11 @@ class _OwnerDashboardPageState extends State<OwnerDashboardPage> {
                 MaterialPageRoute(builder: (_) => const ProfilePageOwner()));
           },
         ),
-        actions: [
+       actions: [
           IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await _auth.signOut();
-              if (mounted) Navigator.pop(context);
-            },
+            tooltip: "Logout",
+            onPressed: _logout,
           ),
         ],
       ),
