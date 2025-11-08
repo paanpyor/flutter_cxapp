@@ -1,0 +1,83 @@
+{
+  "project_info": {
+    "project_number": "580334120041",
+    "firebase_url": "https://restaurant-survey-app-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "restaurant-survey-app",
+    "storage_bucket": "restaurant-survey-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:580334120041:android:7805cf2c23a5f16089c6f8",
+        "android_client_info": {
+          "package_name": "com.example.flutter_cxapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "580334120041-4ivgc1hs5lc40bhsoa8ocohukrl209c4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA-sQgA66jX-jllfzTRtOFll18YkDU-6L4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "580334120041-4ivgc1hs5lc40bhsoa8ocohukrl209c4.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "580334120041-0bpc9onpgom0beqe0fsc8luvj2qljo53.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.cxapp"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:580334120041:android:ee796aef7e9a98a789c6f8",
+        "android_client_info": {
+          "package_name": "com.example.flutter_cxapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "580334120041-4ivgc1hs5lc40bhsoa8ocohukrl209c4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA-sQgA66jX-jllfzTRtOFll18YkDU-6L4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "580334120041-4ivgc1hs5lc40bhsoa8ocohukrl209c4.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "580334120041-0bpc9onpgom0beqe0fsc8luvj2qljo53.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.cxapp"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
