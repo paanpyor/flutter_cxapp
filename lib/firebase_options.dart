@@ -58,6 +58,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '580334120041',
     projectId: 'restaurant-survey-app',
     databaseURL: 'https://restaurant-survey-app-default-rtdb.asia-southeast1.firebasedatabase.app',
-    storageBucket: 'restaurant-survey-app.firebasestorage.app',
+   storageBucket: 'restaurant-survey-app.appspot.com',
+
+
   );
 }
