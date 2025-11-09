@@ -23,7 +23,7 @@ class _SplashPageState extends State<SplashPage> {
   }
 
   Future<void> _checkUser() async {
-    await Future.delayed(const Duration(seconds: 2));
+    await Future.delayed(const Duration(seconds: 3));
 
     final user = _auth.currentUser;
     if (user == null) {

@@ -8,7 +8,6 @@ import 'package:flutter_cxapp/login_page.dart';
 import 'package:flutter_cxapp/restaurant_details_owner.dart';
 import 'profile_page_owner.dart';
 
-
 class OwnerDashboardPage extends StatefulWidget {
   const OwnerDashboardPage({super.key});
 
@@ -133,36 +132,130 @@ class _OwnerDashboardPageState extends State<OwnerDashboardPage> {
       );
     }
   }
-    Future<void> _logout() async {
-    await _auth.signOut();
-    if (mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const LoginPage()),
+
+  // 🔹 Enhanced Logout with animation + confirmation
+  Future<void> _confirmLogout() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Confirm Logout"),
+        content: const Text("Are you sure you want to sign out?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Logout"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) _handleLogout();
+  }
+
+  Future<void> _handleLogout() async {
+    // show loading spinner
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: Colors.black.withOpacity(0.3),
+      pageBuilder: (_, __, ___) =>
+          const Center(child: CircularProgressIndicator(color: Colors.white)),
+    );
+
+    try {
+      await _auth.signOut();
+      Navigator.pop(context); // close spinner
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text("Signed out successfully 👋"),
+        backgroundColor: Colors.indigo,
+      ));
+      await Future.delayed(const Duration(milliseconds: 400));
+
+      Navigator.of(context).pushAndRemoveUntil(
+        PageRouteBuilder(
+          transitionDuration: const Duration(milliseconds: 700),
+          pageBuilder: (_, animation, __) => FadeTransition(
+            opacity: animation,
+            child: const LoginPage(),
+          ),
+        ),
+        (route) => false,
+      );
+    } catch (e) {
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Logout failed: $e")),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final user = _auth.currentUser;
     return Scaffold(
       appBar: AppBar(
         title: const Text("Owner Dashboard"),
         backgroundColor: Colors.indigo,
-        leading: IconButton(
-          icon: const Icon(Icons.person),
-          onPressed: () {
-            Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const ProfilePageOwner()));
-          },
+      ),
+      drawer: Drawer(
+        child: Column(
+          children: [
+            UserAccountsDrawerHeader(
+              accountName: Text(user?.displayName ?? "Owner"),
+              accountEmail: Text(user?.email ?? "No email"),
+              currentAccountPicture: const CircleAvatar(
+                backgroundColor: Colors.white,
+                child: Icon(Icons.person, color: Colors.indigo, size: 40),
+              ),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.indigo, Colors.blueAccent],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.dashboard),
+              title: const Text("Dashboard"),
+              onTap: () => Navigator.pop(context),
+            ),
+            ListTile(
+              leading: const Icon(Icons.add_business),
+              title: const Text("Add Restaurant"),
+              onTap: () async {
+                Navigator.pop(context);
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const AddRestaurantPage()),
+                );
+                _loadOwnerRestaurants();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.person),
+              title: const Text("Profile"),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => const ProfilePageOwner()));
+              },
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.logout, color: Colors.redAccent),
+              title: const Text("Logout",
+                  style: TextStyle(color: Colors.redAccent)),
+              onTap: _confirmLogout,
+            ),
+          ],
         ),
-       actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: "Logout",
-            onPressed: _logout,
-          ),
-        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
@@ -191,8 +284,7 @@ class _OwnerDashboardPageState extends State<OwnerDashboardPage> {
                           itemBuilder: (context, index) {
                             final r = _restaurants[index];
                             return Card(
-                              margin:
-                                  const EdgeInsets.symmetric(vertical: 8),
+                              margin: const EdgeInsets.symmetric(vertical: 8),
                               shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12)),
                               child: ListTile(
@@ -217,9 +309,8 @@ class _OwnerDashboardPageState extends State<OwnerDashboardPage> {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (_) =>
-                                          RestaurantDetailsOwnerPage(
-                                              restaurantId: r["id"]),
+                                      builder: (_) => RestaurantDetailsOwnerPage(
+                                          restaurantId: r["id"]),
                                     ),
                                   );
                                 },

@@ -379,6 +379,7 @@ class _RestaurantDetailsOwnerPageState
                     TileLayer(
                         urlTemplate:
                             "https://tile.openstreetmap.org/{z}/{x}/{y}.png"),
+                            
                     MarkerLayer(
                       markers: [
                         Marker(
