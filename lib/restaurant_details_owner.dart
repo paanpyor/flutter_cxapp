@@ -28,6 +28,7 @@ class _RestaurantDetailsOwnerPageState
 
   LatLng? _restaurantLocation;
   LatLng? _currentLocation;
+  double? _distanceKm;
 
   @override
   void initState() {
@@ -68,7 +69,24 @@ class _RestaurantDetailsOwnerPageState
     if (permission == LocationPermission.deniedForever) return;
 
     final pos = await Geolocator.getCurrentPosition();
-    if (mounted) setState(() => _currentLocation = LatLng(pos.latitude, pos.longitude));
+    if (mounted) {
+      setState(() {
+        _currentLocation = LatLng(pos.latitude, pos.longitude);
+        _calculateDistance();
+      });
+    }
+  }
+
+  void _calculateDistance() {
+    if (_restaurantLocation == null || _currentLocation == null) return;
+
+    final distance = Distance();
+    _distanceKm = distance.as(
+      LengthUnit.Kilometer,
+      _currentLocation!,
+      _restaurantLocation!,
+    );
+    setState(() {});
   }
 
   Future<void> _calculateAverages() async {
@@ -168,8 +186,9 @@ class _RestaurantDetailsOwnerPageState
     return Scaffold(
       backgroundColor: const Color(0xfff8f9fa),
       appBar: AppBar(
-          title: const Text("Restaurant Insights (Owner)"),
-          backgroundColor: Colors.indigo),
+        title: const Text("Restaurant Insights (Owner)"),
+        backgroundColor: Colors.indigo,
+      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _restaurant == null
@@ -218,6 +237,16 @@ class _RestaurantDetailsOwnerPageState
                       _buildFeedbackSection(),
                       const SizedBox(height: 20),
                       _buildMapSection(),
+                      if (_distanceKm != null) ...[
+                        const SizedBox(height: 10),
+                        Text(
+                          "🧭 Distance from you: ${_distanceKm!.toStringAsFixed(2)} km",
+                          style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.indigo),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -374,12 +403,15 @@ class _RestaurantDetailsOwnerPageState
                 borderRadius: BorderRadius.circular(12),
                 child: FlutterMap(
                   options: MapOptions(
-                      initialCenter: _restaurantLocation!, initialZoom: 15),
+                    initialCenter: _restaurantLocation!,
+                    initialZoom: 15,
+                  ),
                   children: [
                     TileLayer(
-                        urlTemplate:
-                            "https://tile.openstreetmap.org/{z}/{x}/{y}.png"),
-                            
+                      urlTemplate:
+                          "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                      userAgentPackageName: 'com.example.flutter_cxapp',
+                    ),
                     MarkerLayer(
                       markers: [
                         Marker(
