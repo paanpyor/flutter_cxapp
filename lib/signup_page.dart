@@ -22,7 +22,9 @@ class _SignupPageState extends State<SignupPage> {
   Future<void> _signup() async {
     if (_emailController.text.isEmpty ||
         _passwordController.text.isEmpty ||
-        _nameController.text.isEmpty) return;
+        _nameController.text.isEmpty) {
+      return;
+    }
 
     setState(() => _loading = true);
     try {
@@ -78,7 +80,7 @@ class _SignupPageState extends State<SignupPage> {
             ),
             const SizedBox(height: 15),
             DropdownButtonFormField<String>(
-              value: _role,
+              initialValue: _role,
               onChanged: (val) => setState(() => _role = val!),
               items: const [
                 DropdownMenuItem(value: "customer", child: Text("Customer")),
