@@ -1,1 +1,21 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"restaurant-survey-app","appId":"1:580334120041:android:7805cf2c23a5f16089c6f8","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"restaurant-survey-app","configurations":{"android":"1:580334120041:android:7805cf2c23a5f16089c6f8"}}}}}}
+{
+    "flutter": {
+        "platforms": {
+            "android": {
+                "default": {
+                    "projectId": "restaurant-survey-app",
+                    "appId": "1:580334120041:android:7805cf2c23a5f16089c6f8",
+                    "fileOutput": "android/app/google-services.json"
+                }
+            },
+            "dart": {
+                "lib/firebase_options.dart": {
+                    "projectId": "restaurant-survey-app",
+                    "configurations": {
+                        "android": "1:580334120041:android:7805cf2c23a5f16089c6f8"
+                    }
+                }
+            }
+        }
+    }
+}

@@ -5,7 +5,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:flutter_cxapp/image_upload_service.dart'; // ✅ Added Imgbb API service
+import 'package:flutter_cxapp/image_upload_service.dart';
 
 class AddRestaurantPage extends StatefulWidget {
   const AddRestaurantPage({super.key});
@@ -25,7 +25,6 @@ class _AddRestaurantPageState extends State<AddRestaurantPage> {
 
   bool _isSaving = false;
 
-  // 🔹 Pick image from gallery
   Future<void> _pickImage() async {
     final picker = ImagePicker();
     final img = await picker.pickImage(
@@ -37,7 +36,6 @@ class _AddRestaurantPageState extends State<AddRestaurantPage> {
     }
   }
 
-  // 🔹 Save restaurant info
   Future<void> _saveRestaurant() async {
     if (_nameController.text.isEmpty ||
         _locationController.text.isEmpty ||
@@ -55,9 +53,8 @@ class _AddRestaurantPageState extends State<AddRestaurantPage> {
     try {
       final uid = _auth.currentUser!.uid;
       String imageUrl =
-          "https://cdn-icons-png.flaticon.com/512/857/857681.png"; // default image
+          "https://cdn-icons-png.flaticon.com/512/857/857681.png";
 
-      // ✅ Upload to Imgbb if image selected
       if (_pickedImage != null) {
         final uploadedUrl =
             await ImgbbService.uploadImage(File(_pickedImage!.path));
@@ -70,7 +67,6 @@ class _AddRestaurantPageState extends State<AddRestaurantPage> {
         }
       }
 
-      // ✅ Save restaurant info in Firebase Realtime Database
       final restaurantRef = _db.child("restaurants").push();
       await restaurantRef.set({
         "name": _nameController.text.trim(),
@@ -99,106 +95,164 @@ class _AddRestaurantPageState extends State<AddRestaurantPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xfff8f9fa),
       appBar: AppBar(
-        title: const Text("Add Restaurant"),
         backgroundColor: Colors.indigo,
+        foregroundColor: Colors.white,
+        title: const Text("Add Restaurant"),
+        elevation: 0,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 🔹 Restaurant name
-            TextField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: "Restaurant Name",
-                border: OutlineInputBorder(),
+            // Restaurant Name
+            const Text(
+              "Restaurant Name",
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.indigo,
               ),
             ),
-            const SizedBox(height: 12),
-
-            // 🔹 Location name
+            const SizedBox(height: 6),
             TextField(
-              controller: _locationController,
-              decoration: const InputDecoration(
-                labelText: "Location Name",
-                border: OutlineInputBorder(),
+              controller: _nameController,
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.grey),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.indigo, width: 2),
+                ),
               ),
             ),
             const SizedBox(height: 20),
 
-            // 🔹 Image Picker
+            // Location Name
+            const Text(
+              "Location Name",
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.indigo,
+              ),
+            ),
+            const SizedBox(height: 6),
+            TextField(
+              controller: _locationController,
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.grey),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.indigo, width: 2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Image Upload
+            const Text(
+              "Restaurant Image",
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.indigo,
+              ),
+            ),
+            const SizedBox(height: 12),
             Center(
               child: Column(
                 children: [
                   ElevatedButton.icon(
-                    onPressed: _pickImage,
-                    icon: const Icon(Icons.image),
-                    label: const Text("Upload Image"),
+                    onPressed: _isSaving ? null : _pickImage,
+                    icon: const Icon(Icons.image, size: 20),
+                    label: const Text("Choose Image"),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.indigo,
+                      backgroundColor: _isSaving ? Colors.grey : Colors.indigo,
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
+                        horizontal: 24,
                         vertical: 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 12),
                   if (_pickedImage != null)
                     ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(16),
                       child: Image.file(
                         File(_pickedImage!.path),
-                        width: 200,
-                        height: 150,
+                        width: 180,
+                        height: 140,
                         fit: BoxFit.cover,
                       ),
                     ),
                 ],
               ),
             ),
+            const SizedBox(height: 24),
 
-            const SizedBox(height: 25),
-
-            // 🔹 Map Picker
+            // Map Picker
             const Text(
-              "Select Restaurant Location:",
-              style: TextStyle(fontWeight: FontWeight.bold),
+              "Select Location on Map",
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.indigo,
+              ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             Container(
-              height: 250,
+              height: 260,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade400),
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(16),
                 child: FlutterMap(
                   options: MapOptions(
-                    initialCenter: const LatLng(3.139, 101.6869), // Kuala Lumpur
+                    initialCenter: const LatLng(3.139, 101.6869),
                     initialZoom: 13,
-                    onTap: (tapPosition, point) {
+                    onTap: _isSaving ? null : (tapPosition, point) {
                       setState(() => _selectedLatLng = point);
                     },
                   ),
                   children: [
                     TileLayer(
-                      urlTemplate:
-                          "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-                          userAgentPackageName: 'com.example.app.flutter_cxapp',
+                      urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                      userAgentPackageName: 'com.example.app.flutter_cxapp',
                     ),
                     if (_selectedLatLng != null)
                       MarkerLayer(
                         markers: [
                           Marker(
                             point: _selectedLatLng!,
-                            width: 60,
-                            height: 60,
+                            width: 50,
+                            height: 50,
                             child: const Icon(
-                              Icons.location_on,
-                              color: Colors.red,
+                              Icons.location_pin,
+                              color: Colors.redAccent,
                               size: 40,
                             ),
                           )
@@ -208,35 +262,47 @@ class _AddRestaurantPageState extends State<AddRestaurantPage> {
                 ),
               ),
             ),
-
             const SizedBox(height: 10),
             Text(
               _selectedLatLng != null
-                  ? "Selected: ${_selectedLatLng!.latitude.toStringAsFixed(5)}, "
-                      "${_selectedLatLng!.longitude.toStringAsFixed(5)}"
-                  : "No location selected yet",
-              style: const TextStyle(fontSize: 13, color: Colors.grey),
+                  ? "${_locationController.text.isEmpty ? 'Location' : _locationController.text}\n"
+                      "(${_selectedLatLng!.latitude.toStringAsFixed(5)}, ${_selectedLatLng!.longitude.toStringAsFixed(5)})"
+                  : "Tap on the map to select a location",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                color: _selectedLatLng != null ? Colors.green : Colors.grey,
+                fontWeight: _selectedLatLng != null ? FontWeight.bold : FontWeight.normal,
+              ),
             ),
-            const SizedBox(height: 25),
+            const SizedBox(height: 30),
 
-            // 🔹 Save button
-            Center(
+            // Save Button
+            SizedBox(
+              width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: _isSaving ? null : _saveRestaurant,
                 icon: _isSaving
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Icon(Icons.save),
-                label: Text(_isSaving ? "Saving..." : "Save Restaurant"),
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(color: Colors.white),
+                      )
+                    : const Icon(Icons.save, size: 20),
+                label: Text(
+                  _isSaving ? "Saving..." : "Save Restaurant",
+                  style: const TextStyle(fontSize: 16),
+                ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.indigo,
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 40, vertical: 14),
+                  backgroundColor: _isSaving ? Colors.grey : Colors.indigo,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                 ),
               ),
             ),
+            const SizedBox(height: 20),
           ],
         ),
       ),

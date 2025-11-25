@@ -51,49 +51,161 @@ class _CESPageState extends State<CESPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar:
-          AppBar(title: const Text("CES Survey"), backgroundColor: Colors.indigo),
+      backgroundColor: const Color(0xfff8f9fa),
+      appBar: AppBar(
+        backgroundColor: Colors.indigo,
+        foregroundColor: Colors.white,
+        title: const Text("CES Survey"),
+        elevation: 0,
+      ),
       body: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(16),
         child: ListView(
           children: [
-            for (int i = 0; i < questions.length; i++)
-              Card(
-                margin: const EdgeInsets.symmetric(vertical: 8),
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(questions[i],
-                          style: const TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold)),
-                      Slider(
-                        value: answers[i] ?? 0,
-                        divisions: 10,
-                        min: 0,
-                        max: 10,
-                        label: "${answers[i]?.toStringAsFixed(0) ?? 0}",
-                        onChanged: (v) => setState(() => answers[i] = v),
-                      ),
-                    ],
-                  ),
-                ),
+            const Text(
+              "Please rate your effort level (0–10):",
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
               ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _feedbackController,
-              decoration: const InputDecoration(
-                labelText: "Berikan maklum balas tambahan (optional)",
-                border: OutlineInputBorder(),
-              ),
-              maxLines: 3,
             ),
             const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _submitSurvey,
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.indigo),
-              child: const Text("Submit Survey"),
+
+            for (int i = 0; i < questions.length; i++)
+              _buildQuestionCard(i, questions[i]),
+
+            const SizedBox(height: 20),
+
+            // Feedback text field
+            Card(
+              elevation: 2,
+              shadowColor: Colors.black12,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "Additional Feedback (Optional)",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.indigo,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: _feedbackController,
+                      decoration: InputDecoration(
+                        hintText: "Share your thoughts...",
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Colors.grey),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Colors.indigo, width: 2),
+                        ),
+                      ),
+                      maxLines: 3,
+                      keyboardType: TextInputType.multiline,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // Submit button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _submitSurvey,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.indigo,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                child: const Text("Submit Survey"),
+              ),
+            ),
+
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuestionCard(int index, String question) {
+    final currentAnswer = answers[index] ?? 0.0;
+
+    // Convert score to meaningful label (lower = more effort = worse)
+    String _getLabel(double value) {
+      if (value <= 2) return "Sangat Sukar";
+      if (value <= 4) return "Sukar";
+      if (value <= 6) return "Sederhana";
+      if (value <= 8) return "Mudah";
+      return "Sangat Mudah";
+    }
+
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      elevation: 2,
+      shadowColor: Colors.black12,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              question,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                height: 1.3,
+              ),
+            ),
+            const SizedBox(height: 12),
+            // Show current rating with interpretation
+            Text(
+              "${currentAnswer.toStringAsFixed(0)} / 10 — ${_getLabel(currentAnswer)}",
+              style: TextStyle(
+                color: currentAnswer > 0 ? Colors.indigo : Colors.grey,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 8),
+            // Customized slider
+            SliderTheme(
+              data: SliderTheme.of(context).copyWith(
+                activeTrackColor: Colors.indigo,
+                inactiveTrackColor: Colors.indigo.withOpacity(0.2),
+                thumbColor: Colors.indigo,
+                overlayColor: Colors.indigo.withOpacity(0.1),
+                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
+                overlayShape: const RoundSliderOverlayShape(overlayRadius: 20),
+              ),
+              child: Slider(
+                value: currentAnswer,
+                divisions: 10,
+                min: 0,
+                max: 10,
+                label: currentAnswer.toStringAsFixed(0),
+                onChanged: (value) => setState(() => answers[index] = value),
+              ),
             ),
           ],
         ),

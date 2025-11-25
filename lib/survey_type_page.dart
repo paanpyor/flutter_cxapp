@@ -44,33 +44,45 @@ class _SurveyTypePageState extends State<SurveyTypePage> {
     setState(() => loading = false);
   }
 
-  Color _getColor(bool done) => done ? Colors.green : Colors.red;
+  Color _getStatusColor(bool done) => done ? Colors.green : Colors.indigo;
 
   @override
   Widget build(BuildContext context) {
     if (loading) {
-      return const Scaffold(
-          body: Center(child: CircularProgressIndicator()));
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: const Center(child: CircularProgressIndicator(color: Colors.indigo)),
+      );
     }
 
     return Scaffold(
+      backgroundColor: const Color(0xfff8f9fa),
       appBar: AppBar(
-        title: const Text("Choose Survey Type"),
         backgroundColor: Colors.indigo,
         foregroundColor: Colors.white,
+        title: const Text("Choose Survey Type"),
+        elevation: 0,
       ),
       body: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _surveyCard(
-              context,
+            const Text(
+              "Please complete the following surveys:",
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 24),
+            _buildSurveyCard(
               title: "CSAT Survey",
-              color: _getColor(csatDone),
               icon: Icons.star,
               description:
-                  "CSAT (Customer Satisfaction Score) mengukur kepuasan pelanggan terhadap perkhidmatan anda.",
+                  "Measures customer satisfaction with your service.",
+              isCompleted: csatDone,
               onTap: () async {
                 await Navigator.push(
                   context,
@@ -81,14 +93,13 @@ class _SurveyTypePageState extends State<SurveyTypePage> {
                 _checkSurveyStatus();
               },
             ),
-            const SizedBox(height: 20),
-            _surveyCard(
-              context,
+            const SizedBox(height: 16),
+            _buildSurveyCard(
               title: "CES Survey",
-              color: _getColor(cesDone),
               icon: Icons.handshake,
               description:
-                  "CES (Customer Effort Score) mengukur kemudahan pelanggan berurusan dengan anda.",
+                  "Measures how easy it was for the customer to interact with you.",
+              isCompleted: cesDone,
               onTap: () async {
                 await Navigator.push(
                   context,
@@ -99,14 +110,13 @@ class _SurveyTypePageState extends State<SurveyTypePage> {
                 _checkSurveyStatus();
               },
             ),
-            const SizedBox(height: 20),
-            _surveyCard(
-              context,
+            const SizedBox(height: 16),
+            _buildSurveyCard(
               title: "NPS Survey",
-              color: _getColor(npsDone),
-              icon: Icons.favorite,
+              icon: Icons.thumb_up,
               description:
-                  "NPS (Net Promoter Score) mengukur kesetiaan pelanggan dan kebarangkalian mereka mencadangkan anda.",
+                  "Measures customer loyalty and likelihood to recommend you.",
+              isCompleted: npsDone,
               onTap: () async {
                 await Navigator.push(
                   context,
@@ -117,50 +127,127 @@ class _SurveyTypePageState extends State<SurveyTypePage> {
                 _checkSurveyStatus();
               },
             ),
+            const Spacer(),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.indigo.withOpacity(0.04),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    color: Colors.indigo.withOpacity(0.7),
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      "Completed surveys are marked with a green accent. You may retake any survey.",
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.indigo.withOpacity(0.8),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _surveyCard(BuildContext context,
-      {required String title,
-      required String description,
-      required IconData icon,
-      required Color color,
-      required VoidCallback onTap}) {
+  Widget _buildSurveyCard({
+    required String title,
+    required IconData icon,
+    required String description,
+    required bool isCompleted,
+    required VoidCallback onTap,
+  }) {
+    final cardColor = isCompleted ? Colors.green.shade50 : Colors.white;
+    final iconColor = isCompleted ? Colors.green : Colors.indigo;
+
     return Card(
-      color: color.withOpacity(0.1),
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 2,
+      shadowColor: Colors.black12,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      color: cardColor,
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          padding: const EdgeInsets.all(16),
+          child: Row(
             children: [
-              Row(
-                children: [
-                  Icon(icon, color: color, size: 40),
-                  const SizedBox(width: 15),
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: color,
-                      ),
-                    ),
-                  ),
-                  Icon(Icons.arrow_forward_ios, color: color),
-                ],
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: iconColor.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: iconColor, size: 28),
               ),
-              const SizedBox(height: 10),
-              Text(description,
-                  style: const TextStyle(fontSize: 14, color: Colors.black54)),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            title,
+                            style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.bold,
+                              color: iconColor,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (isCompleted)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.green,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Text(
+                              "Done",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          )
+                        else
+                          Icon(Icons.arrow_forward_ios,
+                              size: 16, color: Colors.grey),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      description,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.black54,
+                        height: 1.4,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),

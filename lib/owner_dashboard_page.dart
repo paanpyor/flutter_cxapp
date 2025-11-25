@@ -6,7 +6,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_cxapp/add_restaurant_page.dart';
 import 'package:flutter_cxapp/login_page.dart';
 import 'package:flutter_cxapp/restaurant_details_owner.dart';
-import 'profile_page_owner.dart';
+import 'package:flutter_cxapp/profile_page_owner.dart';
 
 class OwnerDashboardPage extends StatefulWidget {
   const OwnerDashboardPage({super.key});
@@ -99,12 +99,12 @@ class _OwnerDashboardPageState extends State<OwnerDashboardPage> {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text("Delete Restaurant"),
-        content:
-            const Text("Are you sure you want to delete this restaurant?"),
+        content: const Text("Are you sure you want to delete this restaurant?"),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text("Cancel")),
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.pop(context, true),
@@ -133,7 +133,6 @@ class _OwnerDashboardPageState extends State<OwnerDashboardPage> {
     }
   }
 
-  // 🔹 Enhanced Logout with animation + confirmation
   Future<void> _confirmLogout() async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -158,7 +157,6 @@ class _OwnerDashboardPageState extends State<OwnerDashboardPage> {
   }
 
   Future<void> _handleLogout() async {
-    // show loading spinner
     showGeneralDialog(
       context: context,
       barrierDismissible: false,
@@ -169,7 +167,7 @@ class _OwnerDashboardPageState extends State<OwnerDashboardPage> {
 
     try {
       await _auth.signOut();
-      Navigator.pop(context); // close spinner
+      Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text("Signed out successfully 👋"),
         backgroundColor: Colors.indigo,
@@ -201,9 +199,12 @@ class _OwnerDashboardPageState extends State<OwnerDashboardPage> {
       appBar: AppBar(
         title: const Text("Owner Dashboard"),
         backgroundColor: Colors.indigo,
+        foregroundColor: Colors.white,
+        elevation: 0,
       ),
       drawer: Drawer(
-        child: Column(
+        child: ListView(
+          padding: EdgeInsets.zero,
           children: [
             UserAccountsDrawerHeader(
               accountName: Text(user?.displayName ?? "Owner"),
@@ -221,37 +222,37 @@ class _OwnerDashboardPageState extends State<OwnerDashboardPage> {
               ),
             ),
             ListTile(
-              leading: const Icon(Icons.dashboard),
+              leading: const Icon(Icons.dashboard, color: Colors.indigo),
               title: const Text("Dashboard"),
               onTap: () => Navigator.pop(context),
             ),
             ListTile(
-              leading: const Icon(Icons.add_business),
+              leading: const Icon(Icons.add_business, color: Colors.indigo),
               title: const Text("Add Restaurant"),
               onTap: () async {
                 Navigator.pop(context);
                 await Navigator.push(
                   context,
-                  MaterialPageRoute(
-                      builder: (_) => const AddRestaurantPage()),
+                  MaterialPageRoute(builder: (_) => const AddRestaurantPage()),
                 );
                 _loadOwnerRestaurants();
               },
             ),
             ListTile(
-              leading: const Icon(Icons.person),
+              leading: const Icon(Icons.person, color: Colors.indigo),
               title: const Text("Profile"),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(context,
-                    MaterialPageRoute(builder: (_) => const ProfilePageOwner()));
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ProfilePageOwner()),
+                );
               },
             ),
             const Divider(),
             ListTile(
               leading: const Icon(Icons.logout, color: Colors.redAccent),
-              title: const Text("Logout",
-                  style: TextStyle(color: Colors.redAccent)),
+              title: const Text("Logout", style: TextStyle(color: Colors.redAccent)),
               onTap: _confirmLogout,
             ),
           ],
@@ -259,8 +260,10 @@ class _OwnerDashboardPageState extends State<OwnerDashboardPage> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
-          await Navigator.push(context,
-              MaterialPageRoute(builder: (_) => const AddRestaurantPage()));
+          await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const AddRestaurantPage()),
+          );
           _loadOwnerRestaurants();
         },
         label: const Text("Add Restaurant"),
@@ -272,65 +275,161 @@ class _OwnerDashboardPageState extends State<OwnerDashboardPage> {
           : SingleChildScrollView(
               padding: const EdgeInsets.all(16),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildChartSection(),
-                  const SizedBox(height: 20),
-                  _restaurants.isEmpty
-                      ? const Text("You have no restaurants yet.")
-                      : ListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: _restaurants.length,
-                          itemBuilder: (context, index) {
-                            final r = _restaurants[index];
-                            return Card(
-                              margin: const EdgeInsets.symmetric(vertical: 8),
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12)),
-                              child: ListTile(
-                                leading: ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Image.network(
-                                    r["imageUrl"],
-                                    width: 60,
-                                    height: 60,
-                                    fit: BoxFit.cover,
-                                  ),
-                                ),
-                                title: Text(r["name"]),
-                                subtitle: Text(r["location"]),
-                                trailing: IconButton(
-                                  icon: const Icon(Icons.delete,
-                                      color: Colors.redAccent),
-                                  onPressed: () =>
-                                      _deleteRestaurant(r["id"], r["imageUrl"]),
-                                ),
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => RestaurantDetailsOwnerPage(
-                                          restaurantId: r["id"]),
-                                    ),
-                                  );
-                                },
-                              ),
-                            );
-                          },
-                        ),
+                  const SizedBox(height: 24),
+                  const Text(
+                    "Your Restaurants",
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.indigo,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  if (_restaurants.isEmpty)
+                    const Center(
+                      child: Text(
+                        "You haven't added any restaurants yet.",
+                        style: TextStyle(fontSize: 16, color: Colors.grey),
+                      ),
+                    )
+                  else
+                    ..._restaurants.map((r) => _buildRestaurantCard(r)),
                 ],
               ),
             ),
     );
   }
 
+  Widget _buildRestaurantCard(Map<String, dynamic> r) {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      elevation: 2,
+      shadowColor: Colors.black12,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => RestaurantDetailsOwnerPage(restaurantId: r["id"]),
+            ),
+          );
+        },
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(16),
+                bottomLeft: Radius.circular(16),
+              ),
+              child: SizedBox(
+                width: 90,
+                height: 90,
+                child: Image.network(
+                  r["imageUrl"],
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      color: Colors.grey[200],
+                      child: const Icon(Icons.restaurant, size: 32, color: Colors.grey),
+                    );
+                  },
+                ),
+              ),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      r["name"],
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        const Icon(Icons.location_on, size: 16, color: Colors.indigo),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            r["location"],
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: Colors.black54,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: SizedBox(
+                        height: 36,
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => RestaurantDetailsOwnerPage(
+                                  restaurantId: r["id"],
+                                ),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.visibility, size: 16, color: Colors.indigo),
+                          label: const Text(
+                            "View Details",
+                            style: TextStyle(color: Colors.indigo, fontSize: 13),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Colors.indigo),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // Delete button on far right
+            IconButton(
+              icon: const Icon(Icons.delete, color: Colors.redAccent),
+              onPressed: () => _deleteRestaurant(r["id"], r["imageUrl"]),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildChartSection() {
     return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 3,
+      shadowColor: Colors.black12,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
               "Overall Performance",
@@ -362,7 +461,7 @@ class _OwnerDashboardPageState extends State<OwnerDashboardPage> {
                     BarChartGroupData(
                       x: 2,
                       barRods: [
-                        BarChartRodData(toY: _avgNPS, color: Colors.pink)
+                        BarChartRodData(toY: _avgNPS, color: Colors.pinkAccent)
                       ],
                     ),
                   ],
@@ -373,18 +472,22 @@ class _OwnerDashboardPageState extends State<OwnerDashboardPage> {
                         getTitlesWidget: (v, _) {
                           switch (v.toInt()) {
                             case 0:
-                              return const Text("CSAT");
+                              return const Text("CSAT", style: TextStyle(fontSize: 12));
                             case 1:
-                              return const Text("CES");
+                              return const Text("CES", style: TextStyle(fontSize: 12));
                             case 2:
-                              return const Text("NPS");
+                              return const Text("NPS", style: TextStyle(fontSize: 12));
                           }
                           return const Text("");
                         },
                       ),
                     ),
+                    leftTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
                   ),
                   borderData: FlBorderData(show: false),
+                  gridData: FlGridData(show: true, drawHorizontalLine: true),
                 ),
               ),
             ),

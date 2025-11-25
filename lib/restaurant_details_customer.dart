@@ -6,6 +6,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter_cxapp/survey_type_page.dart';
 
+
 class RestaurantDetailsCustomerPage extends StatefulWidget {
   final String restaurantId;
 

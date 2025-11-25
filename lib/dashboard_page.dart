@@ -4,7 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_cxapp/login_page.dart';
 import 'package:flutter_cxapp/restaurant_details_customer.dart';
 import 'package:flutter_cxapp/restaurant_details_page.dart';
-import 'package:flutter_cxapp/profile_page_customer.dart'; // ✅ Added import
+import 'package:flutter_cxapp/profile_page_customer.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -98,40 +98,120 @@ class _DashboardPageState extends State<DashboardPage> {
     setState(() => _filteredRestaurants = result);
   }
 
-  Future<void> _logout() async {
-    await _auth.signOut();
-    if (mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const LoginPage()),
+  // 🔹 Logout with confirmation (same as owner)
+  Future<void> _confirmLogout() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Confirm Logout"),
+        content: const Text("Are you sure you want to sign out?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Logout"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) _handleLogout();
+  }
+
+  Future<void> _handleLogout() async {
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: Colors.black.withOpacity(0.3),
+      pageBuilder: (_, __, ___) =>
+          const Center(child: CircularProgressIndicator(color: Colors.white)),
+    );
+
+    try {
+      await _auth.signOut();
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text("Signed out successfully 👋"),
+        backgroundColor: Colors.indigo,
+      ));
+      await Future.delayed(const Duration(milliseconds: 400));
+
+      Navigator.of(context).pushAndRemoveUntil(
+        PageRouteBuilder(
+          transitionDuration: const Duration(milliseconds: 700),
+          pageBuilder: (_, animation, __) => FadeTransition(
+            opacity: animation,
+            child: const LoginPage(),
+          ),
+        ),
+        (route) => false,
+      );
+    } catch (e) {
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Logout failed: $e")),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final user = _auth.currentUser;
     return Scaffold(
       backgroundColor: const Color(0xfff8f9fa),
       appBar: AppBar(
         backgroundColor: Colors.indigo,
         title: const Text("Explore Restaurants"),
-        leading: IconButton( // ✅ Added profile icon
-          icon: const Icon(Icons.person),
-          tooltip: "Profile",
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const ProfilePageCustomer()),
-            );
-          },
+        foregroundColor: Colors.white,
+        elevation: 0,
+      ),
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            UserAccountsDrawerHeader(
+              accountName: Text(user?.displayName ?? "Customer"),
+              accountEmail: Text(user?.email ?? "No email"),
+              currentAccountPicture: const CircleAvatar(
+                backgroundColor: Colors.white,
+                child: Icon(Icons.person, color: Colors.indigo, size: 40),
+              ),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.indigo, Colors.blueAccent],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.home, color: Colors.indigo),
+              title: const Text("Home"),
+              onTap: () => Navigator.pop(context),
+            ),
+            ListTile(
+              leading: const Icon(Icons.person, color: Colors.indigo),
+              title: const Text("Profile"),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ProfilePageCustomer()),
+                );
+              },
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.logout, color: Colors.redAccent),
+              title: const Text("Logout", style: TextStyle(color: Colors.redAccent)),
+              onTap: _confirmLogout,
+            ),
+          ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: "Logout",
-            onPressed: _logout,
-          ),
-        ],
       ),
       body: Column(
         children: [
@@ -236,12 +316,13 @@ class _DashboardPageState extends State<DashboardPage> {
                           final r = _filteredRestaurants[index];
                           return Card(
                             margin: const EdgeInsets.symmetric(vertical: 8),
-                            elevation: 4,
+                            elevation: 2,
+                            shadowColor: Colors.black12,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(15),
+                              borderRadius: BorderRadius.circular(16),
                             ),
                             child: InkWell(
-                              borderRadius: BorderRadius.circular(15),
+                              borderRadius: BorderRadius.circular(16),
                               onTap: () {
                                 Navigator.push(
                                   context,
@@ -255,81 +336,95 @@ class _DashboardPageState extends State<DashboardPage> {
                                 children: [
                                   ClipRRect(
                                     borderRadius: const BorderRadius.only(
-                                      topLeft: Radius.circular(15),
-                                      bottomLeft: Radius.circular(15),
+                                      topLeft: Radius.circular(16),
+                                      bottomLeft: Radius.circular(16),
                                     ),
-                                    child: Image.network(
-                                      r["imageUrl"],
-                                      width: 100,
-                                      height: 100,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) => Container(
-                                        width: 100,
-                                        height: 100,
-                                        color: Colors.grey[300],
-                                        child: const Icon(Icons.restaurant,
-                                            size: 40, color: Colors.grey),
+                                    child: SizedBox(
+                                      width: 90,
+                                      height: 90,
+                                      child: Image.network(
+                                        r["imageUrl"],
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (context, error, stackTrace) {
+                                          return Container(
+                                            color: Colors.grey[200],
+                                            child: const Icon(
+                                              Icons.restaurant,
+                                              size: 32,
+                                              color: Colors.grey,
+                                            ),
+                                          );
+                                        },
                                       ),
                                     ),
                                   ),
                                   Expanded(
                                     child: Padding(
                                       padding: const EdgeInsets.symmetric(
-                                          horizontal: 12, vertical: 8),
+                                          vertical: 14, horizontal: 12),
                                       child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
+                                        crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           Text(
                                             r["name"],
                                             style: const TextStyle(
-                                              fontSize: 18,
+                                              fontSize: 17,
                                               fontWeight: FontWeight.bold,
+                                              height: 1.2,
                                             ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
                                           ),
-                                          const SizedBox(height: 4),
+                                          const SizedBox(height: 6),
                                           Row(
                                             children: [
                                               const Icon(Icons.location_on,
-                                                  size: 16,
-                                                  color: Colors.indigo),
+                                                  size: 16, color: Colors.indigo),
                                               const SizedBox(width: 4),
                                               Expanded(
                                                 child: Text(
                                                   r["location"],
                                                   style: const TextStyle(
-                                                    fontSize: 14,
+                                                    fontSize: 13,
                                                     color: Colors.black54,
                                                   ),
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
                                                 ),
                                               ),
                                             ],
                                           ),
-                                          const SizedBox(height: 8),
+                                          const SizedBox(height: 10),
                                           Align(
-                                            alignment: Alignment.bottomRight,
-                                            child: TextButton.icon(
-                                              onPressed: () {
-                                                Navigator.push(
-                                                  context,
-                                                  MaterialPageRoute(
-                                                    builder: (_) =>
-                                                        RestaurantDetailsCustomerPage(
-                                                            restaurantId:
-                                                                r["id"]),
+                                            alignment: Alignment.centerRight,
+                                            child: SizedBox(
+                                              height: 36,
+                                              child: ElevatedButton.icon(
+                                                onPressed: () {
+                                                  Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                      builder: (_) =>
+                                                          RestaurantDetailsCustomerPage(
+                                                        restaurantId: r["id"],
+                                                      ),
+                                                    ),
+                                                  );
+                                                },
+                                                icon: const Icon(Icons.edit_note, size: 16),
+                                                label: const Text(
+                                                  "Take Survey",
+                                                  style: TextStyle(fontSize: 13),
+                                                ),
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor: Colors.indigo.shade50,
+                                                  foregroundColor: Colors.indigo.shade800,
+                                                  elevation: 0,
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius: BorderRadius.circular(20),
                                                   ),
-                                                );
-                                              },
-                                              icon: const Icon(
-                                                  Icons.arrow_forward_ios,
-                                                  size: 16,
-                                                  color: Colors.indigo),
-                                              label: const Text(
-                                                "Take Survey",
-                                                style: TextStyle(
-                                                    color: Colors.indigo),
+                                                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                                                ),
                                               ),
                                             ),
                                           ),
