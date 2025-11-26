@@ -1,10 +1,7 @@
-import 'dart:io';
+// lib/screens/profile_page_customer.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:flutter_cxapp/login_page.dart';
 
 class ProfilePageCustomer extends StatefulWidget {
   const ProfilePageCustomer({super.key});
@@ -14,17 +11,9 @@ class ProfilePageCustomer extends StatefulWidget {
 }
 
 class _ProfilePageCustomerState extends State<ProfilePageCustomer> {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final DatabaseReference _db = FirebaseDatabase.instance.ref();
-  final FirebaseStorage _storage = FirebaseStorage.instance;
-
-  final TextEditingController _nameController = TextEditingController();
-
-  bool _loading = true;
-  String _email = "";
-  String _role = "customer";
-  String _profileImageUrl =
-      "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
+  String? _name;
+  String? _email;
+  int _streak = 7; // Mock data
 
   @override
   void initState() {
@@ -33,132 +22,105 @@ class _ProfilePageCustomerState extends State<ProfilePageCustomer> {
   }
 
   Future<void> _loadProfile() async {
-    final uid = _auth.currentUser?.uid;
+    final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
 
-    final snap = await _db.child("users/$uid").get();
+    final snap = await FirebaseDatabase.instance.ref().child("users/$uid").get();
     if (snap.exists) {
-      final data = Map<String, dynamic>.from(snap.value as Map);
+      final data = snap.value as Map;
       setState(() {
-        _nameController.text = data["name"] ?? "";
-        _email = data["email"] ?? "";
-        _role = data["role"] ?? "customer";
-        _profileImageUrl = data["profileImage"] ?? _profileImageUrl;
-        _loading = false;
+        _name = data["name"];
+        _email = data["email"];
       });
-    } else {
-      setState(() => _loading = false);
-    }
-  }
-
-  Future<void> _uploadProfileImage() async {
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(source: ImageSource.gallery);
-
-    if (picked == null) return;
-
-    final uid = _auth.currentUser?.uid;
-    if (uid == null) return;
-
-    final ref = _storage.ref().child("profile_images/$uid.jpg");
-    await ref.putFile(File(picked.path));
-    final downloadUrl = await ref.getDownloadURL();
-
-    await _db.child("users/$uid/profileImage").set(downloadUrl);
-
-    setState(() => _profileImageUrl = downloadUrl);
-  }
-
-  Future<void> _saveProfile() async {
-    final uid = _auth.currentUser?.uid;
-    if (uid == null) return;
-
-    await _db.child("users/$uid/name").set(_nameController.text);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Profile updated successfully")),
-    );
-  }
-
-  Future<void> _logout() async {
-    await _auth.signOut();
-    if (mounted) {
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (_) => const LoginPage()),
-        (route) => false,
-      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xfff8f9fa),
-      appBar: AppBar(
-        title: const Text("My Profile"),
-        backgroundColor: Colors.indigo,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: _logout,
-          ),
-        ],
-      ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  GestureDetector(
-                    onTap: _uploadProfileImage,
-                    child: CircleAvatar(
-                      radius: 60,
-                      backgroundImage: NetworkImage(_profileImageUrl),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  const Text("Tap image to change",
-                      style: TextStyle(color: Colors.grey, fontSize: 12)),
-                  const SizedBox(height: 20),
-                  TextField(
-                    controller: _nameController,
-                    decoration: const InputDecoration(
-                      labelText: "Full Name",
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  TextField(
-                    readOnly: true,
-                    decoration: InputDecoration(
-                      labelText: "Email",
-                      border: const OutlineInputBorder(),
-                      hintText: _email,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  TextField(
-                    readOnly: true,
-                    decoration: InputDecoration(
-                      labelText: "Role",
-                      border: const OutlineInputBorder(),
-                      hintText: _role,
-                    ),
-                  ),
-                  const SizedBox(height: 30),
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.save),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.indigo,
-                      minimumSize: const Size(double.infinity, 50),
-                    ),
-                    onPressed: _saveProfile,
-                    label: const Text("Save Changes"),
-                  ),
-                ],
+      appBar: AppBar(title: const Text("My Profile")),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            CircleAvatar(
+              radius: 40,
+              backgroundColor: Colors.indigo,
+              child: Text(
+                _name?.substring(0, 1) ?? "?",
+                style: const TextStyle(color: Colors.white, fontSize: 30),
               ),
             ),
+            const SizedBox(height: 16),
+            Text(
+              _name ?? "Loading...",
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _email ?? "Loading...",
+              style: const TextStyle(fontSize: 16, color: Colors.grey),
+            ),
+            const SizedBox(height: 20),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "Your Stats",
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            children: [
+                              Text(
+                                "$_streak",
+                                style: const TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const Text("Day Streak"),
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          child: Column(
+                            children: [
+                              const Text(
+                                "0",
+                                style: TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const Text("Surveys Taken"),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: () {
+                // Edit profile
+              },
+              icon: const Icon(Icons.edit),
+              label: const Text("Edit Profile"),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

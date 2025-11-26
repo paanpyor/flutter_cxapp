@@ -7,6 +7,7 @@ import 'package:flutter_cxapp/add_restaurant_page.dart';
 import 'package:flutter_cxapp/login_page.dart';
 import 'package:flutter_cxapp/restaurant_details_owner.dart';
 import 'package:flutter_cxapp/profile_page_owner.dart';
+import 'package:intl/intl.dart';
 
 class OwnerDashboardPage extends StatefulWidget {
   const OwnerDashboardPage({super.key});
@@ -26,10 +27,67 @@ class _OwnerDashboardPageState extends State<OwnerDashboardPage> {
   double _avgCES = 0.0;
   double _avgNPS = 0.0;
 
+  String? _userName;
+  int _currentStreak = 0;
+  String? _todayMood;
+
   @override
   void initState() {
     super.initState();
+    _loadUserData();
     _loadOwnerRestaurants();
+  }
+
+  Future<void> _loadUserData() async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    _userName = user.displayName ?? user.email?.split('@').first ?? "Owner";
+
+    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final userRef = _db.child("users/${user.uid}");
+    final snap = await userRef.child("loginStreak").get();
+
+    int streak = 0;
+    String? lastLoginDate;
+    if (snap.exists) {
+      final data = Map<String, dynamic>.from(snap.value as Map);
+      streak = (data["streak"] as num?)?.toInt() ?? 0;
+      lastLoginDate = data["lastLogin"] as String?;
+    }
+
+    if (lastLoginDate == today) {
+      _currentStreak = streak;
+      final moodSnap = await userRef.child("moods/$today").get();
+      if (moodSnap.exists) {
+        _todayMood = moodSnap.value as String?;
+      }
+    } else {
+      final yesterday = DateFormat('yyyy-MM-dd')
+          .format(DateTime.now().subtract(const Duration(days: 1)));
+      if (lastLoginDate == yesterday) {
+        streak++;
+      } else {
+        streak = 1;
+      }
+
+      await userRef.child("loginStreak").set({
+        "streak": streak,
+        "lastLogin": today,
+      });
+      _currentStreak = streak;
+    }
+
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _saveMood(String mood) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    await _db.child("users/${user.uid}/moods/$today").set(mood);
+    if (mounted) setState(() => _todayMood = mood);
   }
 
   Future<void> _loadOwnerRestaurants() async {
@@ -102,9 +160,8 @@ class _OwnerDashboardPageState extends State<OwnerDashboardPage> {
         content: const Text("Are you sure you want to delete this restaurant?"),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text("Cancel"),
-          ),
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text("Cancel")),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.pop(context, true),
@@ -194,12 +251,12 @@ class _OwnerDashboardPageState extends State<OwnerDashboardPage> {
 
   @override
   Widget build(BuildContext context) {
-    final user = _auth.currentUser;
     return Scaffold(
+      backgroundColor: const Color(0xfff8f9fa),
       appBar: AppBar(
-        title: const Text("Owner Dashboard"),
         backgroundColor: Colors.indigo,
         foregroundColor: Colors.white,
+        title: const Text("Owner Dashboard"),
         elevation: 0,
       ),
       drawer: Drawer(
@@ -207,8 +264,8 @@ class _OwnerDashboardPageState extends State<OwnerDashboardPage> {
           padding: EdgeInsets.zero,
           children: [
             UserAccountsDrawerHeader(
-              accountName: Text(user?.displayName ?? "Owner"),
-              accountEmail: Text(user?.email ?? "No email"),
+              accountName: Text(_userName ?? "Owner"),
+              accountEmail: Text(_auth.currentUser?.email ?? "No email"),
               currentAccountPicture: const CircleAvatar(
                 backgroundColor: Colors.white,
                 child: Icon(Icons.person, color: Colors.indigo, size: 40),
@@ -243,10 +300,8 @@ class _OwnerDashboardPageState extends State<OwnerDashboardPage> {
               title: const Text("Profile"),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const ProfilePageOwner()),
-                );
+                Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => const ProfilePageOwner()));
               },
             ),
             const Divider(),
@@ -260,10 +315,8 @@ class _OwnerDashboardPageState extends State<OwnerDashboardPage> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
-          await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const AddRestaurantPage()),
-          );
+          await Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const AddRestaurantPage()));
           _loadOwnerRestaurants();
         },
         label: const Text("Add Restaurant"),
@@ -273,151 +326,240 @@ class _OwnerDashboardPageState extends State<OwnerDashboardPage> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.only(top: 0, left: 16, right: 16, bottom: 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildChartSection(),
-                  const SizedBox(height: 24),
+                  // --- Streak + Mood Header ---
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Text(
+                              "Hello, ",
+                              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                            ),
+                            Text(
+                              _userName ?? "Owner",
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.indigo,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: Colors.orangeAccent.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.local_fire_department, size: 16, color: Colors.orange),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    "$_currentStreak-Day Streak",
+                                    style: const TextStyle(
+                                      color: Colors.orange,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Text("How are you today?", style: const TextStyle(fontSize: 14)),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            _buildMoodButton("😊", "Happy"),
+                            const SizedBox(width: 8),
+                            _buildMoodButton("😐", "Okay"),
+                            const SizedBox(width: 8),
+                            _buildMoodButton("😞", "Stressed"),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Performance Section
                   const Text(
-                    "Your Restaurants",
+                    "Customer Experience Metrics",
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                       color: Colors.indigo,
                     ),
                   ),
+                  const SizedBox(height: 16),
+                  _buildChartSection(),
+                  const SizedBox(height: 28),
+
+                  // Restaurants Section
+                  const Text(
+                    "Your Restaurants",
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
                   const SizedBox(height: 12),
+
                   if (_restaurants.isEmpty)
-                    const Center(
-                      child: Text(
-                        "You haven't added any restaurants yet.",
-                        style: TextStyle(fontSize: 16, color: Colors.grey),
+                    Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.storefront_outlined, size: 80, color: Colors.grey),
+                          const SizedBox(height: 16),
+                          const Text(
+                            "No restaurants added",
+                            style: TextStyle(fontSize: 18, color: Colors.grey),
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            "Tap the + button to add your first restaurant.",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        ],
                       ),
                     )
                   else
-                    ..._restaurants.map((r) => _buildRestaurantCard(r)),
+                    ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: _restaurants.length,
+                      itemBuilder: (context, index) {
+                        final r = _restaurants[index];
+                        return Card(
+                          margin: const EdgeInsets.symmetric(vertical: 8),
+                          elevation: 2,
+                          shadowColor: Colors.black12,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(16),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => RestaurantDetailsOwnerPage(restaurantId: r["id"]),
+                                ),
+                              );
+                            },
+                            child: Row(
+                              children: [
+                                ClipRRect(
+                                  borderRadius: const BorderRadius.only(
+                                    topLeft: Radius.circular(16),
+                                    bottomLeft: Radius.circular(16),
+                                  ),
+                                  child: SizedBox(
+                                    width: 90,
+                                    height: 90,
+                                    child: Image.network(
+                                      r["imageUrl"],
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) {
+                                        return Container(
+                                          color: Colors.grey[200],
+                                          child: const Icon(Icons.restaurant, size: 32, color: Colors.grey),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ),
+                                Expanded(
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          r["name"],
+                                          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        const SizedBox(height: 6),
+                                        Row(
+                                          children: [
+                                            const Icon(Icons.location_on, size: 16, color: Colors.indigo),
+                                            const SizedBox(width: 4),
+                                            Expanded(
+                                              child: Text(
+                                                r["location"],
+                                                style: const TextStyle(fontSize: 13, color: Colors.black54),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 10),
+                                        Align(
+                                          alignment: Alignment.centerRight,
+                                          child: SizedBox(
+                                            height: 36,
+                                            child: OutlinedButton.icon(
+                                              onPressed: () {
+                                                Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                    builder: (_) => RestaurantDetailsOwnerPage(
+                                                      restaurantId: r["id"],
+                                                    ),
+                                                  ),
+                                                );
+                                              },
+                                              icon: const Icon(Icons.visibility, size: 16, color: Colors.indigo),
+                                              label: const Text("View Insights", style: TextStyle(color: Colors.indigo, fontSize: 13)),
+                                              style: OutlinedButton.styleFrom(
+                                                side: const BorderSide(color: Colors.indigo),
+                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete, color: Colors.redAccent),
+                                  onPressed: () => _deleteRestaurant(r["id"], r["imageUrl"]),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                 ],
               ),
             ),
     );
   }
 
-  Widget _buildRestaurantCard(Map<String, dynamic> r) {
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      elevation: 2,
-      shadowColor: Colors.black12,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+  Widget _buildMoodButton(String emoji, String value) {
+    final isSelected = _todayMood == value;
+    return ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: isSelected ? Colors.indigo : Colors.grey[200],
+        foregroundColor: isSelected ? Colors.white : Colors.black,
+        shape: const CircleBorder(),
+        padding: const EdgeInsets.all(12),
       ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => RestaurantDetailsOwnerPage(restaurantId: r["id"]),
-            ),
-          );
-        },
-        child: Row(
-          children: [
-            ClipRRect(
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(16),
-                bottomLeft: Radius.circular(16),
-              ),
-              child: SizedBox(
-                width: 90,
-                height: 90,
-                child: Image.network(
-                  r["imageUrl"],
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      color: Colors.grey[200],
-                      child: const Icon(Icons.restaurant, size: 32, color: Colors.grey),
-                    );
-                  },
-                ),
-              ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      r["name"],
-                      style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        const Icon(Icons.location_on, size: 16, color: Colors.indigo),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            r["location"],
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: Colors.black54,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: SizedBox(
-                        height: 36,
-                        child: OutlinedButton.icon(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => RestaurantDetailsOwnerPage(
-                                  restaurantId: r["id"],
-                                ),
-                              ),
-                            );
-                          },
-                          icon: const Icon(Icons.visibility, size: 16, color: Colors.indigo),
-                          label: const Text(
-                            "View Details",
-                            style: TextStyle(color: Colors.indigo, fontSize: 13),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Colors.indigo),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            // Delete button on far right
-            IconButton(
-              icon: const Icon(Icons.delete, color: Colors.redAccent),
-              onPressed: () => _deleteRestaurant(r["id"], r["imageUrl"]),
-            ),
-          ],
-        ),
-      ),
+      onPressed: () => _saveMood(value),
+      child: Text(emoji, style: const TextStyle(fontSize: 20)),
     );
   }
 
@@ -433,11 +575,7 @@ class _OwnerDashboardPageState extends State<OwnerDashboardPage> {
           children: [
             const Text(
               "Overall Performance",
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.indigo,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.indigo),
             ),
             const SizedBox(height: 16),
             SizedBox(
@@ -448,21 +586,15 @@ class _OwnerDashboardPageState extends State<OwnerDashboardPage> {
                   barGroups: [
                     BarChartGroupData(
                       x: 0,
-                      barRods: [
-                        BarChartRodData(toY: _avgCSAT, color: Colors.indigo)
-                      ],
+                      barRods: [BarChartRodData(toY: _avgCSAT, color: Colors.indigo)],
                     ),
                     BarChartGroupData(
                       x: 1,
-                      barRods: [
-                        BarChartRodData(toY: _avgCES, color: Colors.green)
-                      ],
+                      barRods: [BarChartRodData(toY: _avgCES, color: Colors.green)],
                     ),
                     BarChartGroupData(
                       x: 2,
-                      barRods: [
-                        BarChartRodData(toY: _avgNPS, color: Colors.pinkAccent)
-                      ],
+                      barRods: [BarChartRodData(toY: _avgNPS, color: Colors.pinkAccent)],
                     ),
                   ],
                   titlesData: FlTitlesData(
@@ -482,9 +614,7 @@ class _OwnerDashboardPageState extends State<OwnerDashboardPage> {
                         },
                       ),
                     ),
-                    leftTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
+                    leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                   ),
                   borderData: FlBorderData(show: false),
                   gridData: FlGridData(show: true, drawHorizontalLine: true),

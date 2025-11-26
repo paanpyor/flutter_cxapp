@@ -5,6 +5,8 @@ import 'package:flutter_cxapp/login_page.dart';
 import 'package:flutter_cxapp/restaurant_details_customer.dart';
 import 'package:flutter_cxapp/restaurant_details_page.dart';
 import 'package:flutter_cxapp/profile_page_customer.dart';
+import 'package:intl/intl.dart';
+
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -26,9 +28,14 @@ class _DashboardPageState extends State<DashboardPage> {
   String _selectedSort = "A–Z";
   String _selectedLocation = "All";
 
+  String? _userName;
+  int _currentStreak = 0;
+  String? _todayMood;
+
   @override
   void initState() {
     super.initState();
+    _loadUserData();
     _loadRestaurants();
     _searchController.addListener(_onSearchChanged);
   }
@@ -37,6 +44,62 @@ class _DashboardPageState extends State<DashboardPage> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadUserData() async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    _userName = user.displayName ?? user.email?.split('@').first ?? "User";
+
+    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final userRef = _db.child("users/${user.uid}");
+    final snap = await userRef.child("loginStreak").get();
+
+    int streak = 0;
+    String? lastLoginDate;
+    if (snap.exists) {
+      final data = Map<String, dynamic>.from(snap.value as Map);
+      streak = (data["streak"] as num?)?.toInt() ?? 0;
+      lastLoginDate = data["lastLogin"] as String?;
+    }
+
+    // Check if user logged in today already
+    if (lastLoginDate == today) {
+      // Already checked in today
+      _currentStreak = streak;
+      final moodSnap = await userRef.child("moods/$today").get();
+      if (moodSnap.exists) {
+        _todayMood = moodSnap.value as String?;
+      }
+    } else {
+      // New day — update streak
+      final yesterday = DateFormat('yyyy-MM-dd')
+          .format(DateTime.now().subtract(const Duration(days: 1)));
+      if (lastLoginDate == yesterday) {
+        streak++; // consecutive
+      } else {
+        streak = 1; // reset
+      }
+
+      // Save new streak & last login
+      await userRef.child("loginStreak").set({
+        "streak": streak,
+        "lastLogin": today,
+      });
+      _currentStreak = streak;
+    }
+
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _saveMood(String mood) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    await _db.child("users/${user.uid}/moods/$today").set(mood);
+    if (mounted) setState(() => _todayMood = mood);
   }
 
   Future<void> _loadRestaurants() async {
@@ -98,7 +161,6 @@ class _DashboardPageState extends State<DashboardPage> {
     setState(() => _filteredRestaurants = result);
   }
 
-  // 🔹 Logout with confirmation (same as owner)
   Future<void> _confirmLogout() async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -160,13 +222,12 @@ class _DashboardPageState extends State<DashboardPage> {
 
   @override
   Widget build(BuildContext context) {
-    final user = _auth.currentUser;
     return Scaffold(
       backgroundColor: const Color(0xfff8f9fa),
       appBar: AppBar(
         backgroundColor: Colors.indigo,
-        title: const Text("Explore Restaurants"),
         foregroundColor: Colors.white,
+        title: const Text("Explore Restaurants"),
         elevation: 0,
       ),
       drawer: Drawer(
@@ -174,8 +235,8 @@ class _DashboardPageState extends State<DashboardPage> {
           padding: EdgeInsets.zero,
           children: [
             UserAccountsDrawerHeader(
-              accountName: Text(user?.displayName ?? "Customer"),
-              accountEmail: Text(user?.email ?? "No email"),
+              accountName: Text(_userName ?? "Customer"),
+              accountEmail: Text(_auth.currentUser?.email ?? "No email"),
               currentAccountPicture: const CircleAvatar(
                 backgroundColor: Colors.white,
                 child: Icon(Icons.person, color: Colors.indigo, size: 40),
@@ -213,234 +274,306 @@ class _DashboardPageState extends State<DashboardPage> {
           ],
         ),
       ),
-      body: Column(
-        children: [
-          // 🔍 Search & filter
-          Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Column(
-              children: [
-                TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: "Search by name or location...",
-                    prefixIcon: const Icon(Icons.search, color: Colors.indigo),
-                    filled: true,
-                    fillColor: Colors.white,
-                    contentPadding:
-                        const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(25),
-                      borderSide:
-                          const BorderSide(color: Colors.indigo, width: 1),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(25),
-                      borderSide:
-                          const BorderSide(color: Colors.indigo, width: 2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        initialValue: _selectedLocation,
-                        decoration: InputDecoration(
-                          labelText: "Filter by Location",
-                          contentPadding: const EdgeInsets.symmetric(
-                              vertical: 8, horizontal: 12),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        items: _uniqueLocations
-                            .map((loc) => DropdownMenuItem(
-                                  value: loc,
-                                  child: Text(loc),
-                                ))
-                            .toList(),
-                        onChanged: (val) {
-                          setState(() => _selectedLocation = val!);
-                          _applyFilters();
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        initialValue: _selectedSort,
-                        decoration: InputDecoration(
-                          labelText: "Sort By",
-                          contentPadding: const EdgeInsets.symmetric(
-                              vertical: 8, horizontal: 12),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        items: const [
-                          DropdownMenuItem(value: "A–Z", child: Text("Name A–Z")),
-                          DropdownMenuItem(value: "Z–A", child: Text("Name Z–A")),
-                          DropdownMenuItem(
-                              value: "Location", child: Text("By Location")),
-                        ],
-                        onChanged: (val) {
-                          setState(() => _selectedSort = val!);
-                          _applyFilters();
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-          // 📋 Restaurant list
-          Expanded(
-            child: _loading
-                ? const Center(child: CircularProgressIndicator())
-                : _filteredRestaurants.isEmpty
-                    ? const Center(
-                        child: Text(
-                          "No restaurants found.",
-                          style:
-                              TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                        ),
-                      )
-                    : ListView.builder(
-                        padding: const EdgeInsets.all(12),
-                        itemCount: _filteredRestaurants.length,
-                        itemBuilder: (context, index) {
-                          final r = _filteredRestaurants[index];
-                          return Card(
-                            margin: const EdgeInsets.symmetric(vertical: 8),
-                            elevation: 2,
-                            shadowColor: Colors.black12,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.only(top: 0, left: 16, right: 16, bottom: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // --- Streak + Mood Header ---
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Text(
+                              "Good Morning, ",
+                              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                             ),
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(16),
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => RestaurantDetailsPage(
-                                        restaurantId: r["id"]),
-                                  ),
-                                );
-                              },
+                            Text(
+                              _userName ?? "User",
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.indigo,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: Colors.orangeAccent.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
                               child: Row(
                                 children: [
-                                  ClipRRect(
-                                    borderRadius: const BorderRadius.only(
-                                      topLeft: Radius.circular(16),
-                                      bottomLeft: Radius.circular(16),
-                                    ),
-                                    child: SizedBox(
-                                      width: 90,
-                                      height: 90,
-                                      child: Image.network(
-                                        r["imageUrl"],
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (context, error, stackTrace) {
-                                          return Container(
-                                            color: Colors.grey[200],
-                                            child: const Icon(
-                                              Icons.restaurant,
-                                              size: 32,
-                                              color: Colors.grey,
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                    ),
-                                  ),
-                                  Expanded(
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                          vertical: 14, horizontal: 12),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            r["name"],
-                                            style: const TextStyle(
-                                              fontSize: 17,
-                                              fontWeight: FontWeight.bold,
-                                              height: 1.2,
-                                            ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                          const SizedBox(height: 6),
-                                          Row(
-                                            children: [
-                                              const Icon(Icons.location_on,
-                                                  size: 16, color: Colors.indigo),
-                                              const SizedBox(width: 4),
-                                              Expanded(
-                                                child: Text(
-                                                  r["location"],
-                                                  style: const TextStyle(
-                                                    fontSize: 13,
-                                                    color: Colors.black54,
-                                                  ),
-                                                  maxLines: 1,
-                                                  overflow: TextOverflow.ellipsis,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 10),
-                                          Align(
-                                            alignment: Alignment.centerRight,
-                                            child: SizedBox(
-                                              height: 36,
-                                              child: ElevatedButton.icon(
-                                                onPressed: () {
-                                                  Navigator.push(
-                                                    context,
-                                                    MaterialPageRoute(
-                                                      builder: (_) =>
-                                                          RestaurantDetailsCustomerPage(
-                                                        restaurantId: r["id"],
-                                                      ),
-                                                    ),
-                                                  );
-                                                },
-                                                icon: const Icon(Icons.edit_note, size: 16),
-                                                label: const Text(
-                                                  "Take Survey",
-                                                  style: TextStyle(fontSize: 13),
-                                                ),
-                                                style: ElevatedButton.styleFrom(
-                                                  backgroundColor: Colors.indigo.shade50,
-                                                  foregroundColor: Colors.indigo.shade800,
-                                                  elevation: 0,
-                                                  shape: RoundedRectangleBorder(
-                                                    borderRadius: BorderRadius.circular(20),
-                                                  ),
-                                                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
+                                  const Icon(Icons.local_fire_department, size: 16, color: Colors.orange),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    "$_currentStreak-Day Streak",
+                                    style: const TextStyle(
+                                      color: Colors.orange,
+                                      fontWeight: FontWeight.bold,
                                     ),
                                   ),
                                 ],
                               ),
                             ),
-                          );
-                        },
+                            const SizedBox(width: 12),
+                            Text("How are you feeling today?", style: const TextStyle(fontSize: 14)),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            _buildMoodButton("😊", "Happy"),
+                            const SizedBox(width: 8),
+                            _buildMoodButton("😐", "Okay"),
+                            const SizedBox(width: 8),
+                            _buildMoodButton("😞", "Sad"),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // 🔍 Search & filter
+                  TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: "Search by name or location...",
+                      prefixIcon: const Icon(Icons.search, color: Colors.indigo),
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding:
+                          const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(25),
+                        borderSide: const BorderSide(color: Colors.indigo, width: 1),
                       ),
-          ),
-        ],
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(25),
+                        borderSide: const BorderSide(color: Colors.indigo, width: 2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          initialValue: _selectedLocation,
+                          decoration: InputDecoration(
+                            labelText: "Filter by Location",
+                            contentPadding: const EdgeInsets.symmetric(
+                                vertical: 8, horizontal: 12),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          items: _uniqueLocations
+                              .map((loc) => DropdownMenuItem(
+                                    value: loc,
+                                    child: Text(loc),
+                                  ))
+                              .toList(),
+                          onChanged: (val) {
+                            setState(() => _selectedLocation = val!);
+                            _applyFilters();
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          initialValue: _selectedSort,
+                          decoration: InputDecoration(
+                            labelText: "Sort By",
+                            contentPadding: const EdgeInsets.symmetric(
+                                vertical: 8, horizontal: 12),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          items: const [
+                            DropdownMenuItem(value: "A–Z", child: Text("Name A–Z")),
+                            DropdownMenuItem(value: "Z–A", child: Text("Name Z–A")),
+                            DropdownMenuItem(
+                                value: "Location", child: Text("By Location")),
+                          ],
+                          onChanged: (val) {
+                            setState(() => _selectedSort = val!);
+                            _applyFilters();
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+
+                  // 📋 Restaurant list
+                  _filteredRestaurants.isEmpty
+                      ? const Center(
+                          child: Text(
+                            "No restaurants found.",
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                          ),
+                        )
+                      : ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          padding: EdgeInsets.zero,
+                          itemCount: _filteredRestaurants.length,
+                          itemBuilder: (context, index) {
+                            final r = _filteredRestaurants[index];
+                            return Card(
+                              margin: const EdgeInsets.symmetric(vertical: 8),
+                              elevation: 2,
+                              shadowColor: Colors.black12,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(16),
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => RestaurantDetailsPage(
+                                          restaurantId: r["id"]),
+                                    ),
+                                  );
+                                },
+                                child: Row(
+                                  children: [
+                                    ClipRRect(
+                                      borderRadius: const BorderRadius.only(
+                                        topLeft: Radius.circular(16),
+                                        bottomLeft: Radius.circular(16),
+                                      ),
+                                      child: SizedBox(
+                                        width: 90,
+                                        height: 90,
+                                        child: Image.network(
+                                          r["imageUrl"],
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (context, error, stackTrace) {
+                                            return Container(
+                                              color: Colors.grey[200],
+                                              child: const Icon(
+                                                Icons.restaurant,
+                                                size: 32,
+                                                color: Colors.grey,
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                    ),
+                                    Expanded(
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 14, horizontal: 12),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              r["name"],
+                                              style: const TextStyle(
+                                                fontSize: 17,
+                                                fontWeight: FontWeight.bold,
+                                                height: 1.2,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                            const SizedBox(height: 6),
+                                            Row(
+                                              children: [
+                                                const Icon(Icons.location_on,
+                                                    size: 16, color: Colors.indigo),
+                                                const SizedBox(width: 4),
+                                                Expanded(
+                                                  child: Text(
+                                                    r["location"],
+                                                    style: const TextStyle(
+                                                      fontSize: 13,
+                                                      color: Colors.black54,
+                                                    ),
+                                                    maxLines: 1,
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 10),
+                                            Align(
+                                              alignment: Alignment.centerRight,
+                                              child: SizedBox(
+                                                height: 36,
+                                                child: ElevatedButton.icon(
+                                                  onPressed: () {
+                                                    Navigator.push(
+                                                      context,
+                                                      MaterialPageRoute(
+                                                        builder: (_) =>
+                                                            RestaurantDetailsCustomerPage(
+                                                          restaurantId: r["id"],
+                                                        ),
+                                                      ),
+                                                    );
+                                                  },
+                                                  icon: const Icon(Icons.edit_note, size: 16),
+                                                  label: const Text(
+                                                    "Take Survey",
+                                                    style: TextStyle(fontSize: 13),
+                                                  ),
+                                                  style: ElevatedButton.styleFrom(
+                                                    backgroundColor: Colors.indigo.shade50,
+                                                    foregroundColor: Colors.indigo.shade800,
+                                                    elevation: 0,
+                                                    shape: RoundedRectangleBorder(
+                                                      borderRadius: BorderRadius.circular(20),
+                                                    ),
+                                                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                ],
+              ),
+            ),
+    );
+  }
+
+  Widget _buildMoodButton(String emoji, String value) {
+    final isSelected = _todayMood == value;
+    return ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: isSelected ? Colors.indigo : Colors.grey[200],
+        foregroundColor: isSelected ? Colors.white : Colors.black,
+        shape: const CircleBorder(),
+        padding: const EdgeInsets.all(12),
       ),
+      onPressed: () => _saveMood(value),
+      child: Text(emoji, style: const TextStyle(fontSize: 20)),
     );
   }
 }

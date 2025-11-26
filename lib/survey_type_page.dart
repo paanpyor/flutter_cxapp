@@ -1,8 +1,9 @@
+
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'csat_page.dart';
-import 'ces_page.dart';
-import 'nps_page.dart';
+import 'package:flutter_cxapp/csat_page.dart';
+import 'package:flutter_cxapp/ces_page.dart';
+import 'package:flutter_cxapp/nps_page.dart';
 
 class SurveyTypePage extends StatefulWidget {
   final String restaurantId;
@@ -44,14 +45,17 @@ class _SurveyTypePageState extends State<SurveyTypePage> {
     setState(() => loading = false);
   }
 
-  Color _getStatusColor(bool done) => done ? Colors.green : Colors.indigo;
+  // ✅ Define color method with full block syntax to avoid IDE warnings
+  Color _getStatusColor(bool done) {
+    return done ? Colors.green : Colors.indigo;
+  }
 
   @override
   Widget build(BuildContext context) {
     if (loading) {
       return Scaffold(
-        backgroundColor: Colors.white,
-        body: const Center(child: CircularProgressIndicator(color: Colors.indigo)),
+        backgroundColor: const Color(0xfff8f9fa),
+        body: Center(child: CircularProgressIndicator(color: Colors.indigo)),
       );
     }
 
@@ -61,7 +65,10 @@ class _SurveyTypePageState extends State<SurveyTypePage> {
         backgroundColor: Colors.indigo,
         foregroundColor: Colors.white,
         title: const Text("Choose Survey Type"),
-        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
@@ -69,19 +76,24 @@ class _SurveyTypePageState extends State<SurveyTypePage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              "Please complete the following surveys:",
+              "Share Your Experience",
               style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.indigo,
               ),
             ),
+            const SizedBox(height: 8),
+            const Text(
+              "Complete the surveys below to help us improve:",
+              style: TextStyle(fontSize: 16, color: Colors.black87),
+            ),
             const SizedBox(height: 24),
+
             _buildSurveyCard(
               title: "CSAT Survey",
               icon: Icons.star,
-              description:
-                  "Measures customer satisfaction with your service.",
+              description: "Rate your satisfaction with service, food, and overall experience.",
               isCompleted: csatDone,
               onTap: () async {
                 await Navigator.push(
@@ -94,11 +106,11 @@ class _SurveyTypePageState extends State<SurveyTypePage> {
               },
             ),
             const SizedBox(height: 16),
+
             _buildSurveyCard(
               title: "CES Survey",
               icon: Icons.handshake,
-              description:
-                  "Measures how easy it was for the customer to interact with you.",
+              description: "Tell us how easy it was to order, get help, or resolve issues.",
               isCompleted: cesDone,
               onTap: () async {
                 await Navigator.push(
@@ -111,11 +123,11 @@ class _SurveyTypePageState extends State<SurveyTypePage> {
               },
             ),
             const SizedBox(height: 16),
+
             _buildSurveyCard(
               title: "NPS Survey",
               icon: Icons.thumb_up,
-              description:
-                  "Measures customer loyalty and likelihood to recommend you.",
+              description: "Would you recommend this restaurant to friends or family?",
               isCompleted: npsDone,
               onTap: () async {
                 await Navigator.push(
@@ -127,6 +139,7 @@ class _SurveyTypePageState extends State<SurveyTypePage> {
                 _checkSurveyStatus();
               },
             ),
+
             const Spacer(),
             Container(
               padding: const EdgeInsets.all(16),
@@ -144,7 +157,7 @@ class _SurveyTypePageState extends State<SurveyTypePage> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      "Completed surveys are marked with a green accent. You may retake any survey.",
+                      "Completed surveys are marked with a green badge. You may retake any survey.",
                       style: TextStyle(
                         fontSize: 13,
                         color: Colors.indigo.withOpacity(0.8),
@@ -154,6 +167,7 @@ class _SurveyTypePageState extends State<SurveyTypePage> {
                 ],
               ),
             ),
+            const SizedBox(height: 20),
           ],
         ),
       ),
@@ -168,7 +182,7 @@ class _SurveyTypePageState extends State<SurveyTypePage> {
     required VoidCallback onTap,
   }) {
     final cardColor = isCompleted ? Colors.green.shade50 : Colors.white;
-    final iconColor = isCompleted ? Colors.green : Colors.indigo;
+    final iconColor = _getStatusColor(isCompleted);
 
     return Card(
       elevation: 2,
@@ -221,7 +235,7 @@ class _SurveyTypePageState extends State<SurveyTypePage> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: const Text(
-                              "Done",
+                              "Completed",
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 12,
