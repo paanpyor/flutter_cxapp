@@ -1,8 +1,9 @@
 // lib/screens/near_me_page.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:flutter_cxapp/restaurant_details_customer.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:flutter_cxapp/restaurant_details_page.dart';
+
 
 class NearMePage extends StatefulWidget {
   const NearMePage({super.key});
@@ -201,7 +202,7 @@ class _NearMePageState extends State<NearMePage> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) => RestaurantDetailsPage(
+                                  builder: (_) => RestaurantDetailsCustomerPage(
                                     restaurantId: r["id"],
                                   ),
                                 ),

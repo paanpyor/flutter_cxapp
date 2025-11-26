@@ -1,9 +1,11 @@
+// lib/login_page.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter_cxapp/owner_dashboard_page.dart';
 import 'package:flutter_cxapp/dashboard_page.dart';
 import 'package:flutter_cxapp/signup_page.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -15,7 +17,6 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final _auth = FirebaseAuth.instance;
   final _db = FirebaseDatabase.instance.ref();
-
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _loading = false;
@@ -38,13 +39,11 @@ class _LoginPageState extends State<LoginPage> {
     }
 
     setState(() => _loading = true);
-
     try {
       final credential = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
-
       final uid = credential.user!.uid;
       final roleSnap = await _db.child("users/$uid/role").get();
       if (!roleSnap.exists) throw Exception("Role not found!");
@@ -86,7 +85,6 @@ class _LoginPageState extends State<LoginPage> {
       );
       return;
     }
-
     try {
       await _auth.sendPasswordResetEmail(email: email);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -102,59 +100,48 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xfff8f9fa), Color(0xffedf2ff)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
+      backgroundColor: const Color(0xFFF8F9FA),
+      body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+          padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              // Logo
               const Icon(
                 Icons.restaurant_menu,
                 size: 80,
-                color: Colors.indigo,
+                color: Color.fromARGB(255, 73, 53, 229),
               ),
-              const SizedBox(height: 10),
-              const Text(
+              const SizedBox(height: 12),
+              Text(
                 "Customer Experience Tracker",
+                textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: Colors.indigo,
+                  color: const Color.fromARGB(255, 73, 53, 229),
+                  fontFamily: GoogleFonts.poppins().fontFamily,
                 ),
-                textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 10),
-              const Text(
+              const SizedBox(height: 8),
+               Text(
                 "Sign in to continue",
-                style: TextStyle(fontSize: 16, color: Colors.grey),
+                style:  TextStyle(
+                  color: Colors.grey,
+                  fontSize: 15,
+                  fontFamily: GoogleFonts.poppins().fontFamily,
+                ),
               ),
               const SizedBox(height: 40),
 
-              // Email Field
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  "Email Address",
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.indigo,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 6),
+              // Email
               TextField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
                 decoration: InputDecoration(
+                  labelText: "Email Address",
+                  prefixIcon: const Icon(Icons.email_outlined, color: Color.fromARGB(255, 53, 73, 229)),
                   filled: true,
                   fillColor: Colors.white,
                   border: OutlineInputBorder(
@@ -163,30 +150,19 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Colors.indigo, width: 2),
+                    borderSide: const BorderSide(color: Color.fromARGB(255, 53, 73, 229), width: 2),
                   ),
-                  prefixIcon: const Icon(Icons.email, color: Colors.indigo),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
 
-              // Password Field
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  "Password",
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.indigo,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 6),
+              // Password
               TextField(
                 controller: _passwordController,
                 obscureText: true,
                 decoration: InputDecoration(
+                  labelText: "Password",
+                  prefixIcon: const Icon(Icons.lock_outline, color: Color.fromARGB(255, 73, 53, 229)),
                   filled: true,
                   fillColor: Colors.white,
                   border: OutlineInputBorder(
@@ -195,56 +171,47 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Colors.indigo, width: 2),
+                    borderSide: const BorderSide(color: Color.fromARGB(255, 53, 73, 229), width: 2),
                   ),
-                  prefixIcon: const Icon(Icons.lock, color: Colors.indigo),
                 ),
               ),
-              const SizedBox(height: 12),
-
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
                   onPressed: _forgotPassword,
                   child: const Text(
                     "Forgot password?",
-                    style: TextStyle(color: Colors.indigo, fontSize: 13),
+                    style: TextStyle(color: Color.fromARGB(255, 73, 53, 229), fontSize: 14),
                   ),
                 ),
               ),
-
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
 
               // Login Button
               SizedBox(
                 width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _loading ? null : _login,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.indigo,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: _loading
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text(
-                          "LOGIN",
-                          style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                child: _loading
+                    ? const CircularProgressIndicator(color: Color.fromARGB(255, 73, 53, 229))
+                    : ElevatedButton(
+                        onPressed: _login,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color.fromARGB(255, 73, 53, 229),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
-                ),
+                        child: const Text("LOGIN", style: TextStyle(fontSize: 17)),
+                      ),
               ),
-
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
 
               // Sign Up Link
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text("Don't have an account?"),
+                  const Text("Don’t have an account? "),
                   TextButton(
                     onPressed: () => Navigator.pushReplacement(
                       context,
@@ -252,7 +219,10 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     child: const Text(
                       "Sign up",
-                      style: TextStyle(color: Colors.indigo, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        color: Color.fromARGB(255, 73, 53, 229),
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ],

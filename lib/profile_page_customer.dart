@@ -13,7 +13,7 @@ class ProfilePageCustomer extends StatefulWidget {
 class _ProfilePageCustomerState extends State<ProfilePageCustomer> {
   String? _name;
   String? _email;
-  int _streak = 7; // Mock data
+  final int _streak = 7; // Mock data
 
   @override
   void initState() {

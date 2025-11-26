@@ -150,7 +150,7 @@ class _CSATPageState extends State<CSATPage> {
     final currentAnswer = answers[index] ?? 0.0;
 
     // Convert score to label (e.g., 0 = "Very Dissatisfied", 10 = "Very Satisfied")
-    String _getLabel(double value) {
+    String getLabel(double value) {
       if (value <= 2) return "Tidak Puas";
       if (value <= 4) return "Kurang Puas";
       if (value <= 6) return "Sederhana";
@@ -181,7 +181,7 @@ class _CSATPageState extends State<CSATPage> {
             const SizedBox(height: 12),
             // Show current rating label
             Text(
-              "${currentAnswer.toStringAsFixed(0)} / 10 — ${_getLabel(currentAnswer)}",
+              "${currentAnswer.toStringAsFixed(0)} / 10 — ${getLabel(currentAnswer)}",
               style: TextStyle(
                 color: currentAnswer > 0 ? Colors.indigo : Colors.grey,
                 fontWeight: FontWeight.w500,

@@ -150,13 +150,13 @@ class _NPSPageState extends State<NPSPage> {
     final currentAnswer = answers[index] ?? 0.0;
 
     // NPS Segmentation Labels (standard: 0–6 = Detractor, 7–8 = Passive, 9–10 = Promoter)
-    String _getLabel(double value) {
+    String getLabel(double value) {
       if (value <= 6) return "Detraktor";
       if (value <= 8) return "Pasif";
       return "Promoter";
     }
 
-    Color _getLabelColor(double value) {
+    Color getLabelColor(double value) {
       if (value <= 6) return Colors.redAccent;
       if (value <= 8) return Colors.orange;
       return Colors.green;
@@ -185,9 +185,9 @@ class _NPSPageState extends State<NPSPage> {
             const SizedBox(height: 12),
             // Show score + NPS category with color
             Text(
-              "${currentAnswer.toStringAsFixed(0)} / 10 — ${_getLabel(currentAnswer)}",
+              "${currentAnswer.toStringAsFixed(0)} / 10 — ${getLabel(currentAnswer)}",
               style: TextStyle(
-                color: _getLabelColor(currentAnswer),
+                color: getLabelColor(currentAnswer),
                 fontWeight: FontWeight.w600,
               ),
             ),

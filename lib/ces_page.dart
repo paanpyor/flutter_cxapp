@@ -150,7 +150,7 @@ class _CESPageState extends State<CESPage> {
     final currentAnswer = answers[index] ?? 0.0;
 
     // Convert score to meaningful label (lower = more effort = worse)
-    String _getLabel(double value) {
+    String getLabel(double value) {
       if (value <= 2) return "Sangat Sukar";
       if (value <= 4) return "Sukar";
       if (value <= 6) return "Sederhana";
@@ -181,7 +181,7 @@ class _CESPageState extends State<CESPage> {
             const SizedBox(height: 12),
             // Show current rating with interpretation
             Text(
-              "${currentAnswer.toStringAsFixed(0)} / 10 — ${_getLabel(currentAnswer)}",
+              "${currentAnswer.toStringAsFixed(0)} / 10 — ${getLabel(currentAnswer)}",
               style: TextStyle(
                 color: currentAnswer > 0 ? Colors.indigo : Colors.grey,
                 fontWeight: FontWeight.w500,

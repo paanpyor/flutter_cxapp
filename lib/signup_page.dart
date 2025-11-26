@@ -1,7 +1,9 @@
+// lib/signup_page.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter_cxapp/login_page.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -55,19 +57,15 @@ class _SignupPageState extends State<SignupPage> {
         email: email,
         password: password,
       );
-
       final uid = userCredential.user!.uid;
-
       await _db.child("users/$uid").set({
         "name": name,
         "email": email,
         "role": _role,
       });
-
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Account created successfully!")),
       );
-
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const LoginPage()),
@@ -94,244 +92,197 @@ class _SignupPageState extends State<SignupPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xfff8f9fa), Color(0xffedf2ff)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
+      backgroundColor: const Color(0xFFF8F9FA),
+      body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(
-                Icons.restaurant_menu,
-                size: 70,
-                color: Colors.indigo,
-              ),
-              const SizedBox(height: 10),
-              const Text(
-                "Join CX Tracker",
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.indigo,
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const SizedBox(height: 40),
+                const Icon(
+                  Icons.restaurant_menu,
+                  size: 70,
+                  color: Color.fromARGB(255, 73, 53, 229),
                 ),
-              ),
-              const SizedBox(height: 10),
-              const Text(
-                "Create your account to get started",
-                style: TextStyle(fontSize: 16, color: Colors.grey),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 30),
-
-              // Full Name
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  "Full Name",
+                const SizedBox(height: 12),
+                Text(
+                  "Join CX Tracker",
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 22,
                     fontWeight: FontWeight.bold,
-                    color: Colors.indigo,
+                    color: const Color.fromARGB(255, 73, 53, 229),
+                    fontFamily: GoogleFonts.poppins().fontFamily,
                   ),
                 ),
-              ),
-              const SizedBox(height: 6),
-              TextField(
-                controller: _nameController,
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: Colors.white,
-                  prefixIcon: const Icon(Icons.person, color: Colors.indigo),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Colors.grey),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Colors.indigo, width: 2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Email
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  "Email Address",
+                const SizedBox(height: 8),
+                 Text(
+                  "Create your account to get started",
+                  textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.indigo,
+                    color: Colors.grey,
+                    fontSize: 15,
+                    fontFamily: GoogleFonts.poppins().fontFamily,
                   ),
                 ),
-              ),
-              const SizedBox(height: 6),
-              TextField(
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: Colors.white,
-                  prefixIcon: const Icon(Icons.email, color: Colors.indigo),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Colors.grey),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Colors.indigo, width: 2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
+                const SizedBox(height: 30),
 
-              // Password
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  "Password",
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.indigo,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 6),
-              TextField(
-                controller: _passwordController,
-                obscureText: true,
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: Colors.white,
-                  prefixIcon: const Icon(Icons.lock, color: Colors.indigo),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Colors.grey),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Colors.indigo, width: 2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Role Selector
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  "Account Type",
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.indigo,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 6),
-              InputDecorator(
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Colors.grey),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Colors.indigo, width: 2),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: _role,
-                    onChanged: _loading ? null : (String? value) {
-                      setState(() => _role = value!);
-                    },
-                    items: const [
-                      DropdownMenuItem(
-                        value: "customer",
-                        child: Row(
-                          children: [
-                            Icon(Icons.person, color: Colors.indigo, size: 18),
-                            const SizedBox(width: 10),
-                            Text("Customer"),
-                          ],
-                        ),
-                      ),
-                      DropdownMenuItem(
-                        value: "owner",
-                        child: Row(
-                          children: [
-                            Icon(Icons.store, color: Colors.indigo, size: 18),
-                            const SizedBox(width: 10),
-                            Text("Restaurant Owner"),
-                          ],
-                        ),
-                      ),
-                    ],
-                    isExpanded: true,
-                    style: const TextStyle(fontSize: 16, color: Colors.black87),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 28),
-
-              // Sign Up Button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _loading ? null : _signup,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.indigo,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
+                // Full Name
+                TextField(
+                  controller: _nameController,
+                  decoration: InputDecoration(
+                    labelText: "Full Name",
+                    prefixIcon: const Icon(Icons.person_outline, color: Color.fromARGB(255, 73, 53, 229)),
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Colors.grey),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color.fromARGB(255, 73, 53, 229), width: 2),
                     ),
                   ),
+                ),
+                const SizedBox(height: 16),
+
+                // Email
+                TextField(
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: InputDecoration(
+                    labelText: "Email Address",
+                    prefixIcon: const Icon(Icons.email_outlined, color: Color.fromARGB(255, 73, 53, 229)),
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Colors.grey),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color.fromARGB(255, 73, 53, 229), width: 2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Password
+                TextField(
+                  controller: _passwordController,
+                  obscureText: true,
+                  decoration: InputDecoration(
+                    labelText: "Password",
+                    prefixIcon: const Icon(Icons.lock_outline, color: Color.fromARGB(255, 73, 53, 229)),
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Colors.grey),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color.fromARGB(255, 73, 53, 229), width: 2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Role Selector
+                InputDecorator(
+                  decoration: InputDecoration(
+                    labelText: "Account Type",
+                    prefixIcon: const Icon(Icons.account_circle_outlined, color: Color.fromARGB(255, 73, 53, 229)),
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Colors.grey),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color.fromARGB(255, 73, 53, 229), width: 2),
+                    ),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: _role,
+                      onChanged: _loading ? null : (String? value) {
+                        setState(() => _role = value!);
+                      },
+                      items: const [
+                        DropdownMenuItem(
+                          value: "customer",
+                          child: Row(
+                            children: [
+                              Icon(Icons.person, color: Color.fromARGB(255, 73, 53, 229), size: 18),
+                              SizedBox(width: 10),
+                              Text("Customer"),
+                            ],
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: "owner",
+                          child: Row(
+                            children: [
+                              Icon(Icons.store, color: Color.fromARGB(255, 73, 53, 229), size: 18),
+                              SizedBox(width: 10),
+                              Text("Restaurant Owner"),
+                            ],
+                          ),
+                        ),
+                      ],
+                      isExpanded: true,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 30),
+
+                // Signup Button
+                SizedBox(
+                  width: double.infinity,
                   child: _loading
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text(
-                          "Create Account",
-                          style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                      ? const CircularProgressIndicator(color: Color.fromARGB(255, 73, 53, 229))
+                      : ElevatedButton(
+                          onPressed: _signup,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color.fromARGB(255, 73, 53, 229),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text("Create Account", style: TextStyle(fontSize: 17)),
                         ),
                 ),
-              ),
+                const SizedBox(height: 20),
 
-              const SizedBox(height: 20),
-
-              // Login Link
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text("Already have an account?"),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.pushReplacement(
+                // Login Link
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text("Already have an account? "),
+                    TextButton(
+                      onPressed: () => Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(builder: (_) => const LoginPage()),
-                      );
-                    },
-                    child: const Text(
-                      "Log in",
-                      style: TextStyle(color: Colors.indigo, fontWeight: FontWeight.bold),
+                      ),
+                      child: const Text(
+                        "Log in",
+                        style: TextStyle(
+                          color: Color.fromARGB(255, 73, 53, 229),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            ],
+                  ],
+                ),
+                const SizedBox(height: 30),
+              ],
+            ),
           ),
         ),
       ),
