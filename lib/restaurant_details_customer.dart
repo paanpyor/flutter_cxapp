@@ -222,9 +222,9 @@ class _RestaurantDetailsCustomerPageState
                             ),
                           );
                         },
-                        icon: const Icon(Icons.assignment_outlined),
+                        icon: const Icon(Icons.assignment_outlined,color: Colors.white,),
                         label: const Text("Start Survey",
-                            style: TextStyle(fontSize: 18)),
+                            style: TextStyle(fontSize: 18,color: Colors.white,)),
                         style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.indigo,
                             padding: const EdgeInsets.symmetric(

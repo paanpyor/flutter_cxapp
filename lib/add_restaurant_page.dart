@@ -189,7 +189,7 @@ class _AddRestaurantPageState extends State<AddRestaurantPage> {
                           ElevatedButton.icon(
                             onPressed: _isSaving ? null : _pickImage,
                             icon: const Icon(Icons.image, size: 20),
-                            label: const Text("Choose Image"),
+                            label: const Text ("Choose Image",style: TextStyle (color: Colors.white)),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: _isSaving ? Colors.grey : Colors.indigo,
                               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
@@ -287,7 +287,7 @@ class _AddRestaurantPageState extends State<AddRestaurantPage> {
                         icon: _isSaving
                             ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white))
                             : const Icon(Icons.save, size: 20),
-                        label: Text(_isSaving ? "Saving..." : "Save Restaurant", style: const TextStyle(fontSize: 16)),
+                        label: Text(_isSaving ? "Saving..." : "Save Restaurant", style: const TextStyle(fontSize: 16, color: Colors.white)),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: _isSaving ? Colors.grey : Colors.indigo,
                           padding: const EdgeInsets.symmetric(vertical: 16),

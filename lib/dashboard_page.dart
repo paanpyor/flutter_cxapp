@@ -383,7 +383,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (_) => RestaurantDetailsPage(restaurantId: r["id"]),
+                                    builder: (_) => RestaurantDetailsCustomerPage(restaurantId: r["id"]),
                                   ),
                                 );
                               },
