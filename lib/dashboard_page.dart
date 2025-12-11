@@ -4,7 +4,6 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_cxapp/login_page.dart';
 import 'package:flutter_cxapp/restaurant_details_customer.dart';
-import 'package:flutter_cxapp/restaurant_details_page.dart';
 import 'package:flutter_cxapp/profile_page_customer.dart';
 import 'package:flutter_cxapp/settings_page.dart';
 import 'package:flutter_cxapp/near_me_page.dart';

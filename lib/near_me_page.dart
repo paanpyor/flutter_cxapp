@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter_cxapp/restaurant_details_customer.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:flutter_cxapp/restaurant_details_page.dart';
 import 'package:url_launcher/url_launcher.dart'; // ✅ Added
 
 class NearMePage extends StatefulWidget {

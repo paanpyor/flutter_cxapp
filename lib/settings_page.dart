@@ -82,7 +82,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   trailing: Switch(
                     value: _isDarkMode,
                     onChanged: _toggleTheme,
-                    activeColor: Colors.indigo,
+                    activeThumbColor: Colors.indigo,
                   ),
                 ),
                 const Divider(),
