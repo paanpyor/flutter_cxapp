@@ -76,13 +76,15 @@ class _SettingsPageState extends State<SettingsPage> {
               children: [
                 // Appearance
                 ListTile(
-                  leading: const Icon(Icons.dark_mode),
-                  title: const Text("Appearance"),
-                  subtitle: Text(_isDarkMode ? "Dark mode" : "Light mode"),
+                  leading: const Icon(
+                    Icons.dark_mode,
+                    color: Color(0xFF4F46E5),
+                  ),
+                  title: const Text("Dark Mode"),
                   trailing: Switch(
                     value: _isDarkMode,
+                    activeThumbColor: const Color(0xFF4F46E5),
                     onChanged: _toggleTheme,
-                    activeThumbColor: Colors.indigo,
                   ),
                 ),
                 const Divider(),
@@ -91,7 +93,9 @@ class _SettingsPageState extends State<SettingsPage> {
                 ListTile(
                   leading: const Icon(Icons.language),
                   title: const Text("Language"),
-                  subtitle: Text(_language == 'en' ? "English" : "Bahasa Malaysia"),
+                  subtitle: Text(
+                    _language == 'en' ? "English" : "Bahasa Malaysia",
+                  ),
                   onTap: () {
                     final newLang = _language == 'en' ? 'ms' : 'en';
                     _changeLanguage(newLang);
@@ -102,7 +106,10 @@ class _SettingsPageState extends State<SettingsPage> {
                 // Logout
                 ListTile(
                   leading: const Icon(Icons.logout, color: Colors.red),
-                  title: const Text("Logout", style: TextStyle(color: Colors.red)),
+                  title: const Text(
+                    "Logout",
+                    style: TextStyle(color: Colors.red),
+                  ),
                   onTap: () => _logout(context),
                 ),
               ],

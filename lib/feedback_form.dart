@@ -1,7 +1,7 @@
+// lib/feedback_form_page.dart
 import 'package:flutter/material.dart';
-import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
+import 'package:firebase_database/firebase_database.dart';
 
 class FeedbackFormPage extends StatefulWidget {
   final String restaurantId;
@@ -24,6 +24,7 @@ class _FeedbackFormPageState extends State<FeedbackFormPage> {
     }
 
     setState(() => _loading = true);
+
     try {
       final user = FirebaseAuth.instance.currentUser;
       await FirebaseDatabase.instance
@@ -38,6 +39,7 @@ class _FeedbackFormPageState extends State<FeedbackFormPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("✅ Feedback submitted!")),
       );
+
       Navigator.pop(context);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -51,33 +53,52 @@ class _FeedbackFormPageState extends State<FeedbackFormPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar:
-          AppBar(title: const Text("Submit Feedback"), backgroundColor: Colors.indigo),
+      appBar: AppBar(
+        title: const Text("Submit Feedback"),
+        backgroundColor: Colors.indigo,
+        foregroundColor: Colors.white,
+      ),
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            TextField(
-              controller: _controller,
-              maxLines: 5,
-              decoration: InputDecoration(
-                labelText: "Your Feedback",
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
+            Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: TextField(
+                  controller: _controller,
+                  maxLines: 5,
+                  decoration: InputDecoration(
+                    hintText: "Share your thoughts...",
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Colors.grey),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Colors.indigo, width: 2),
+                    ),
+                    prefixIcon: const Icon(Icons.message_outlined, color: Colors.grey),
+                  ),
                 ),
               ),
             ),
             const SizedBox(height: 25),
-            ElevatedButton.icon(
-              onPressed: _loading ? null : _submitFeedback,
-              icon: const Icon(Icons.send),
-              label: _loading
-                  ? const CircularProgressIndicator(color: Colors.white)
-                  : const Text("Submit"),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.indigo,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _loading ? null : _submitFeedback,
+                icon: const Icon(Icons.send_rounded, color: Colors.white),
+                label: _loading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text("Submit Feedback", style: TextStyle(fontSize: 16)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.indigo,
+                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
               ),
             ),
           ],

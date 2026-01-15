@@ -7,12 +7,11 @@ import 'package:flutter_cxapp/restaurant_details_customer.dart';
 import 'package:flutter_cxapp/profile_page_customer.dart';
 import 'package:flutter_cxapp/settings_page.dart';
 import 'package:flutter_cxapp/near_me_page.dart';
+import 'package:flutter_cxapp/qr_scanner_page.dart';
 import 'package:intl/intl.dart';
-
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
-
   @override
   State<DashboardPage> createState() => _DashboardPageState();
 }
@@ -29,8 +28,8 @@ class _DashboardPageState extends State<DashboardPage> {
   String _selectedLocation = "All";
   String? _userName;
   int _currentStreak = 0;
+  int _surveysTaken = 0;
   String? _todayMood;
-
   int _currentIndex = 0;
 
   @override
@@ -53,34 +52,39 @@ class _DashboardPageState extends State<DashboardPage> {
     _userName = user.displayName ?? user.email?.split('@').first ?? "User";
     final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
     final userRef = _db.child("users/${user.uid}");
-    final snap = await userRef.child("loginStreak").get();
+    
+    // Load streak
+    final streakSnap = await userRef.child("loginStreak").get();
     int streak = 0;
     String? lastLoginDate;
-    if (snap.exists) {
-      final data = Map<String, dynamic>.from(snap.value as Map);
+    if (streakSnap.exists) {
+      final data = Map<String, dynamic>.from(streakSnap.value as Map);
       streak = (data["streak"] as num?)?.toInt() ?? 0;
       lastLoginDate = data["lastLogin"] as String?;
     }
     if (lastLoginDate == today) {
       _currentStreak = streak;
-      final moodSnap = await userRef.child("moods/$today").get();
-      if (moodSnap.exists) {
-        _todayMood = moodSnap.value as String?;
-      }
     } else {
-      final yesterday = DateFormat('yyyy-MM-dd')
-          .format(DateTime.now().subtract(const Duration(days: 1)));
+      final yesterday = DateFormat('yyyy-MM-dd').format(DateTime.now().subtract(const Duration(days: 1)));
       if (lastLoginDate == yesterday) {
         streak++;
       } else {
         streak = 1;
       }
-      await userRef.child("loginStreak").set({
-        "streak": streak,
-        "lastLogin": today,
-      });
+      await userRef.child("loginStreak").set({"streak": streak, "lastLogin": today});
       _currentStreak = streak;
     }
+
+    // Load mood
+    final moodSnap = await userRef.child("moods/$today").get();
+    if (moodSnap.exists) {
+      _todayMood = moodSnap.value as String?;
+    }
+
+    // Load surveys taken
+    final surveysSnap = await _db.child("user_surveys/${user.uid}").get();
+    _surveysTaken = surveysSnap.exists ? (surveysSnap.value as Map?)?.length ?? 0 : 0;
+
     if (mounted) setState(() {});
   }
 
@@ -103,34 +107,20 @@ class _DashboardPageState extends State<DashboardPage> {
             "id": e.key,
             "name": map["name"] ?? "Unnamed",
             "location": map["location"] ?? "Unknown",
-            "imageUrl": map["imageUrl"] ??
-                "https://cdn-icons-png.flaticon.com/512/857/857681.png",
+            "imageUrl": map["imageUrl"] ?? "https://cdn-icons-png.flaticon.com/512/857/857681.png",
           };
         }).toList();
-        final locations = list
-            .map((r) => r["location"] as String)
-            .toSet()
-            .toList()
-          ..sort();
+        final locations = list.map((r) => r["location"] as String).toSet().toList()..sort();
         _restaurants = list;
         _filteredRestaurants = list;
         _uniqueLocations = ["All", ...locations];
-      } else {
-        _restaurants = [];
-        _filteredRestaurants = [];
-        _uniqueLocations = ["All"];
       }
     } catch (e) {
       _restaurants = [];
       _filteredRestaurants = [];
       _uniqueLocations = ["All"];
     }
-
-    if (mounted) {
-      setState(() {
-        _loading = false;
-      });
-    }
+    if (mounted) setState(() => _loading = false);
   }
 
   void _onSearchChanged() => _applyFilters();
@@ -142,10 +132,10 @@ class _DashboardPageState extends State<DashboardPage> {
       final name = r["name"].toString().toLowerCase();
       final location = r["location"].toString().toLowerCase();
       bool matchesQuery = name.contains(query) || location.contains(query);
-      bool matchesLocation =
-          selectedLocation == "All" || r["location"] == selectedLocation;
+      bool matchesLocation = selectedLocation == "All" || r["location"] == selectedLocation;
       return matchesQuery && matchesLocation;
     }).toList();
+    
     if (_selectedSort == "A–Z") {
       result.sort((a, b) => a["name"].compareTo(b["name"]));
     } else if (_selectedSort == "Z–A") {
@@ -163,10 +153,7 @@ class _DashboardPageState extends State<DashboardPage> {
         title: const Text("Confirm Logout"),
         content: const Text("Are you sure you want to sign out?"),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text("Cancel"),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.pop(context, true),
@@ -183,8 +170,7 @@ class _DashboardPageState extends State<DashboardPage> {
       context: context,
       barrierDismissible: false,
       barrierColor: Colors.black.withOpacity(0.3),
-      pageBuilder: (_, __, ___) =>
-          const Center(child: CircularProgressIndicator(color: Colors.white)),
+      pageBuilder: (_, __, ___) => const Center(child: CircularProgressIndicator(color: Colors.white)),
     );
     try {
       await _auth.signOut();
@@ -197,17 +183,13 @@ class _DashboardPageState extends State<DashboardPage> {
       Navigator.of(context).pushAndRemoveUntil(
         PageRouteBuilder(
           transitionDuration: const Duration(milliseconds: 700),
-          pageBuilder: (_, animation, __) => FadeTransition(
-            opacity: animation,
-            child: const LoginPage(),
-          ),
+          pageBuilder: (_, animation, __) => FadeTransition(opacity: animation, child: const LoginPage()),
         ),
         (route) => false,
       );
     } catch (e) {
       Navigator.pop(context);
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("Logout failed: $e")));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Logout failed: $e")));
     }
   }
 
@@ -227,7 +209,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
   @override
   Widget build(BuildContext context) {
-    final Widget homeContent = _loading
+    final homeContent = _loading
         ? const Center(child: CircularProgressIndicator(color: Colors.indigo))
         : SingleChildScrollView(
             padding: const EdgeInsets.only(top: 0, left: 16, right: 16, bottom: 80),
@@ -239,21 +221,10 @@ class _DashboardPageState extends State<DashboardPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          const Text(
-                            "Good Morning,",
-                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                          ),
-                          Text(
-                            _userName ?? "User",
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.indigo,
-                            ),
-                          ),
-                        ],
+                      Text("Good Morning,", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                      Text(
+                        _userName ?? "User",
+                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.indigo),
                       ),
                       const SizedBox(height: 12),
                       Row(
@@ -265,31 +236,40 @@ class _DashboardPageState extends State<DashboardPage> {
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Row(
-                              children:  [
+                              children: [
                                 Icon(Icons.local_fire_department, size: 16, color: Colors.orange),
-                                SizedBox(width: 4),
-                                Text(
-                                  "$_currentStreak-Day Streak",
-                                  style: TextStyle(
-                                    color: Colors.orange,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
+                                const SizedBox(width: 4),
+                                Text("$_currentStreak-Day Streak", style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
                               ],
                             ),
                           ),
                           const SizedBox(width: 12),
-                          const Text("How are you feeling today?", style: TextStyle(fontSize: 14)),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.greenAccent.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.assignment_turned_in, size: 16, color: Colors.green),
+                                const SizedBox(width: 4),
+                                Text("$_surveysTaken Completed", style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 8),
+                      const Text("How are you feeling today?", style: TextStyle(fontSize: 14)),
+                      const SizedBox(height: 8),
                       Row(
                         children: [
-                          _buildMoodButton(" 🙂", "Happy"),
+                          _buildMoodButton("🙂", "Happy"),
                           const SizedBox(width: 8),
-                          _buildMoodButton(" 😐", "Okay"),
+                          _buildMoodButton("😐", "Okay"),
                           const SizedBox(width: 8),
-                          _buildMoodButton(" 🙁", "Sad"),
+                          _buildMoodButton("😢", "Sad"),
                         ],
                       ),
                     ],
@@ -303,14 +283,8 @@ class _DashboardPageState extends State<DashboardPage> {
                     filled: true,
                     fillColor: Colors.white,
                     contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(30),
-                      borderSide: BorderSide.none,
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(30),
-                      borderSide: const BorderSide(color: Colors.indigo, width: 2),
-                    ),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none),
+                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: const BorderSide(color: Colors.indigo, width: 2)),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -320,14 +294,9 @@ class _DashboardPageState extends State<DashboardPage> {
                       child: DropdownButtonFormField<String>(
                         initialValue: _selectedLocation,
                         decoration: InputDecoration(
-                          labelText: "Location",
-                          filled: true,
-                          fillColor: Colors.white,
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          labelText: "Location", filled: true, fillColor: Colors.white, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         ),
-                        items: _uniqueLocations
-                            .map((loc) => DropdownMenuItem(value: loc, child: Text(loc)))
-                            .toList(),
+                        items: _uniqueLocations.map((loc) => DropdownMenuItem(value: loc, child: Text(loc))).toList(),
                         onChanged: (val) {
                           setState(() {
                             _selectedLocation = val!;
@@ -341,10 +310,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       child: DropdownButtonFormField<String>(
                         initialValue: _selectedSort,
                         decoration: InputDecoration(
-                          labelText: "Sort",
-                          filled: true,
-                          fillColor: Colors.white,
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          labelText: "Sort", filled: true, fillColor: Colors.white, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                         items: const [
                           DropdownMenuItem(value: "A–Z", child: Text("Name A–Z")),
@@ -363,9 +329,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 ),
                 const SizedBox(height: 20),
                 _filteredRestaurants.isEmpty
-                    ? const Center(
-                        child: Text("No restaurants found.", style: TextStyle(fontSize: 16, color: Colors.grey)),
-                      )
+                    ? const Center(child: Text("No restaurants found.", style: TextStyle(fontSize: 16, color: Colors.grey)))
                     : ListView.builder(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
@@ -378,33 +342,21 @@ class _DashboardPageState extends State<DashboardPage> {
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                             child: InkWell(
                               borderRadius: BorderRadius.circular(16),
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => RestaurantDetailsCustomerPage(restaurantId: r["id"]),
-                                  ),
-                                );
-                              },
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => RestaurantDetailsCustomerPage(restaurantId: r["id"])),
+                              ),
                               child: Row(
                                 children: [
                                   ClipRRect(
-                                    borderRadius: const BorderRadius.only(
-                                      topLeft: Radius.circular(16),
-                                      bottomLeft: Radius.circular(16),
-                                    ),
+                                    borderRadius: const BorderRadius.only(topLeft: Radius.circular(16), bottomLeft: Radius.circular(16)),
                                     child: SizedBox(
                                       width: 90,
                                       height: 90,
                                       child: Image.network(
                                         r["imageUrl"],
                                         fit: BoxFit.cover,
-                                        errorBuilder: (context, error, stackTrace) {
-                                          return Container(
-                                            color: Colors.grey[200],
-                                            child: const Icon(Icons.restaurant, size: 32, color: Colors.grey),
-                                          );
-                                        },
+                                        errorBuilder: (_, __, ___) => Container(color: Colors.grey[200], child: const Icon(Icons.restaurant, size: 32, color: Colors.grey)),
                                       ),
                                     ),
                                   ),
@@ -414,24 +366,14 @@ class _DashboardPageState extends State<DashboardPage> {
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          Text(
-                                            r["name"],
-                                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
+                                          Text(r["name"], style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
                                           const SizedBox(height: 4),
                                           Row(
                                             children: [
                                               const Icon(Icons.location_on, size: 14, color: Colors.indigo),
                                               const SizedBox(width: 4),
                                               Expanded(
-                                                child: Text(
-                                                  r["location"],
-                                                  style: const TextStyle(fontSize: 13, color: Colors.black54),
-                                                  maxLines: 1,
-                                                  overflow: TextOverflow.ellipsis,
-                                                ),
+                                                child: Text(r["location"], style: const TextStyle(fontSize: 13, color: Colors.black54), maxLines: 1, overflow: TextOverflow.ellipsis),
                                               ),
                                             ],
                                           ),
@@ -441,16 +383,10 @@ class _DashboardPageState extends State<DashboardPage> {
                                             child: SizedBox(
                                               height: 32,
                                               child: ElevatedButton(
-                                                onPressed: () {
-                                                  Navigator.push(
-                                                    context,
-                                                    MaterialPageRoute(
-                                                      builder: (_) => RestaurantDetailsCustomerPage(
-                                                        restaurantId: r["id"],
-                                                      ),
-                                                    ),
-                                                  );
-                                                },
+                                                onPressed: () => Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(builder: (_) => RestaurantDetailsCustomerPage(restaurantId: r["id"])),
+                                                ),
                                                 style: ElevatedButton.styleFrom(
                                                   backgroundColor: Colors.indigo,
                                                   foregroundColor: Colors.white,
@@ -482,6 +418,9 @@ class _DashboardPageState extends State<DashboardPage> {
         foregroundColor: Colors.black,
         title: const Text("Restaurants", style: TextStyle(fontWeight: FontWeight.bold)),
         elevation: 0,
+        actions: [
+          IconButton(icon: const Icon(Icons.logout, color: Colors.grey), onPressed: _confirmLogout),
+        ],
       ),
       body: IndexedStack(
         index: _currentIndex,
@@ -511,13 +450,9 @@ class _DashboardPageState extends State<DashboardPage> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Quick feedback coming soon!")),
-          );
-        },
+        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const QRScannerPage())),
         backgroundColor: Colors.indigo,
-        child: const Icon(Icons.add, color: Colors.white),
+        child: const Icon(Icons.qr_code_scanner, color: Colors.white),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
@@ -530,11 +465,7 @@ class _DashboardPageState extends State<DashboardPage> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            color: isActive ? Colors.indigo : Colors.grey,
-            size: 24,
-          ),
+          Icon(icon, color: isActive ? Colors.indigo : Colors.grey, size: 24),
           const SizedBox(height: 4),
           Text(
             label,

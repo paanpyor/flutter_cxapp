@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_cxapp/dashboard_page.dart';
 import 'package:flutter_cxapp/near_me_page.dart';
 import 'package:flutter_cxapp/profile_page_customer.dart';
-import 'package:flutter_cxapp/settings_page.dart';
 
 class CustomerBottomNav extends StatefulWidget {
   const CustomerBottomNav({super.key});
@@ -19,7 +18,7 @@ class _CustomerBottomNavState extends State<CustomerBottomNav> {
     DashboardPage(),   // No const—some pages may need rebuilds
     NearMePage(),
     ProfilePageCustomer(),
-    SettingsPage(),
+  
   ];
 
   @override

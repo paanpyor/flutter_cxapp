@@ -1,10 +1,10 @@
+// lib/survey_summary_page.dart
 import 'package:flutter/material.dart';
 
 class SurveySummaryPage extends StatelessWidget {
   final String title;
   final double score;
   final Color color;
-
   const SurveySummaryPage({
     super.key,
     required this.title,
@@ -22,12 +22,26 @@ class SurveySummaryPage extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.check_circle, size: 90, color: color),
+              // Animated Checkmark
+              TweenAnimationBuilder<double>(
+                tween: Tween<double>(begin: 0, end: 1),
+                duration: const Duration(milliseconds: 800),
+                curve: Curves.bounceOut,
+                builder: (context, value, child) {
+                  return Transform.scale(
+                    scale: value,
+                    child: Icon(Icons.check_circle, size: 90, color: color),
+                  );
+                },
+              ),
               const SizedBox(height: 20),
               Text(
                 title,
                 style: TextStyle(
-                    fontSize: 22, fontWeight: FontWeight.bold, color: color),
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
               ),
               const SizedBox(height: 10),
               Text(
@@ -35,14 +49,18 @@ class SurveySummaryPage extends StatelessWidget {
                 style: const TextStyle(fontSize: 18, color: Colors.black54),
               ),
               const SizedBox(height: 30),
-              ElevatedButton(
-                onPressed: () => Navigator.popUntil(context, (r) => r.isFirst),
-                style: ElevatedButton.styleFrom(
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.popUntil(context, (r) => r.isFirst),
+                  style: ElevatedButton.styleFrom(
                     backgroundColor: color,
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 14, horizontal: 40)),
-                child: const Text("Back to Dashboard",
-                    style: TextStyle(fontSize: 18, color: Colors.white)),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 40),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text("Back to Dashboard", style: TextStyle(fontSize: 18)),
+                ),
               ),
             ],
           ),

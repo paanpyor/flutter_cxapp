@@ -1,9 +1,9 @@
 // lib/near_me_page.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'package:flutter_cxapp/restaurant_details_customer.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:url_launcher/url_launcher.dart'; // ✅ Added
+import 'package:url_launcher/url_launcher.dart';
+import 'restaurant_details_customer.dart';
 
 class NearMePage extends StatefulWidget {
   const NearMePage({super.key});
@@ -24,30 +24,37 @@ class _NearMePageState extends State<NearMePage> {
   }
 
   Future<void> _getCurrentLocation() async {
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      _showError("Please enable Location Services.");
-      setState(() => _loading = false);
-      return;
-    }
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        _showError("Location permission denied.");
+    try {
+      // Check service
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        _showError("Please enable Location Services.");
         setState(() => _loading = false);
         return;
       }
-    }
-    if (permission == LocationPermission.deniedForever) {
-      _showError("Please enable location in app settings.");
-      setState(() => _loading = false);
-      return;
-    }
-    try {
+
+      // Check permission
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          _showError("Location permission denied.");
+          setState(() => _loading = false);
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        _showError("Please enable location in app settings.");
+        setState(() => _loading = false);
+        return;
+      }
+
+      // Get position
       Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
+
       if (mounted) {
         setState(() {
           _currentPosition = position;
@@ -67,10 +74,12 @@ class _NearMePageState extends State<NearMePage> {
         final data = (snap.value as Map).cast<String, dynamic>();
         final List<Map<String, dynamic>> restaurants = [];
         final entries = data.entries;
+
         for (var entry in entries) {
           final map = Map<String, dynamic>.from(entry.value);
           final lat = map["latitude"];
           final lng = map["longitude"];
+
           if (lat != null && lng != null) {
             double distanceInMeters = Geolocator.distanceBetween(
               userPos.latitude,
@@ -78,6 +87,7 @@ class _NearMePageState extends State<NearMePage> {
               (lat as num).toDouble(),
               (lng as num).toDouble(),
             );
+
             restaurants.add({
               "id": entry.key,
               "name": map["name"] ?? "Unnamed Restaurant",
@@ -85,11 +95,12 @@ class _NearMePageState extends State<NearMePage> {
               "imageUrl": map["imageUrl"] ??
                   "https://cdn-icons-png.flaticon.com/512/857/857681.png",
               "distance": distanceInMeters / 1000, // in kilometers
-              "latitude": (lat).toDouble(), // ✅ Store latitude
-              "longitude": (lng).toDouble(), // ✅ Store longitude
+              "latitude": (lat).toDouble(),
+              "longitude": (lng).toDouble(),
             });
           }
         }
+
         restaurants.sort((a, b) => a["distance"].compareTo(b["distance"]));
         if (mounted) {
           setState(() {
@@ -122,7 +133,6 @@ class _NearMePageState extends State<NearMePage> {
     }
   }
 
-  // ✅ Added: Launch Maps with Directions
   Future<void> _launchMapsDirections(
     double userLat,
     double userLng,
@@ -204,8 +214,7 @@ class _NearMePageState extends State<NearMePage> {
                                     width: 70,
                                     height: 70,
                                     fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) =>
-                                        Container(
+                                    errorBuilder: (_, __, ___) => Container(
                                       color: Colors.grey[300],
                                       child: const Icon(Icons.restaurant, size: 30),
                                     ),
@@ -235,7 +244,7 @@ class _NearMePageState extends State<NearMePage> {
                                 Column(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    // ✅ Navigate Button
+                                    // Navigate Button
                                     ElevatedButton.icon(
                                       onPressed: () => _launchMapsDirections(
                                         _currentPosition!.latitude,

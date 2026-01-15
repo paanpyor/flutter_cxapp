@@ -1,3 +1,4 @@
+// lib/nps_page.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 
@@ -12,7 +13,6 @@ class NPSPage extends StatefulWidget {
 class _NPSPageState extends State<NPSPage> {
   final _db = FirebaseDatabase.instance.ref();
   final _feedbackController = TextEditingController();
-
   final List<String> questions = [
     "Sejauh mana anda akan mencadangkan restoran ini kepada rakan?",
     "Adakah anda rasa kualiti makanan kami menepati jangkaan?",
@@ -20,126 +20,56 @@ class _NPSPageState extends State<NPSPage> {
     "Adakah anda berasa dihargai sebagai pelanggan?",
     "Sejauh mana anda yakin untuk kembali semula ke sini?"
   ];
-
   Map<int, double> answers = {};
 
   Future<void> _submitSurvey() async {
     if (answers.length < 5) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Sila jawab semua soalan.")),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Sila jawab semua soalan.")));
       return;
     }
-
-    final avgScore =
-        answers.values.reduce((a, b) => a + b) / answers.values.length;
-
+    final avgScore = answers.values.reduce((a, b) => a + b) / answers.values.length;
     await _db.child("restaurants/${widget.restaurantId}/surveys").push().set({
       "type": "NPS",
       "nps": avgScore,
       "comment": _feedbackController.text.trim(),
       "date": DateTime.now().toIso8601String(),
     });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Terima kasih atas maklum balas anda!")),
-    );
-
     Navigator.pop(context);
+    // Optional: show summary page
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xfff8f9fa),
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        backgroundColor: Colors.indigo,
+        backgroundColor: const Color(0xFF4F46E5),
         foregroundColor: Colors.white,
-        title: const Text("NPS Survey"),
+        title: const Text("Net Promoter Score (NPS)"),
         elevation: 0,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: ListView(
           children: [
-            const Text(
-              "Please rate on a scale of 0–10:",
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-              ),
-            ),
+            const Text("Rate from 0 (Detractor) to 10 (Promoter)", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
             const SizedBox(height: 20),
-
-            for (int i = 0; i < questions.length; i++)
-              _buildQuestionCard(i, questions[i]),
-
+            for (int i = 0; i < questions.length; i++) _buildQuestionCard(i, questions[i]),
             const SizedBox(height: 20),
-
-            // Feedback text field
-            Card(
-              elevation: 2,
-              shadowColor: Colors.black12,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      "Additional Feedback (Optional)",
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.indigo,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    TextField(
-                      controller: _feedbackController,
-                      decoration: InputDecoration(
-                        hintText: "Share your thoughts...",
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Colors.grey),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Colors.indigo, width: 2),
-                        ),
-                      ),
-                      maxLines: 3,
-                      keyboardType: TextInputType.multiline,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
+            _buildFeedbackCard(),
             const SizedBox(height: 24),
-
-            // Submit button
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: _submitSurvey,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.indigo,
-                  foregroundColor: Colors.white,
+                  backgroundColor: const Color(0xFF4F46E5),
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-                child: const Text("Submit Survey"),
+                child: const Text("Submit Survey", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               ),
             ),
-
-            const SizedBox(height: 20),
           ],
         ),
       ),
@@ -148,71 +78,61 @@ class _NPSPageState extends State<NPSPage> {
 
   Widget _buildQuestionCard(int index, String question) {
     final currentAnswer = answers[index] ?? 0.0;
-
-    // NPS Segmentation Labels (standard: 0–6 = Detractor, 7–8 = Passive, 9–10 = Promoter)
-    String getLabel(double value) {
-      if (value <= 6) return "Detraktor";
-      if (value <= 8) return "Pasif";
-      return "Promoter";
-    }
-
-    Color getLabelColor(double value) {
-      if (value <= 6) return Colors.redAccent;
-      if (value <= 8) return Colors.orange;
-      return Colors.green;
-    }
+    String getLabel(double value) => value < 7 ? "Detraktor" : value < 9 ? "Pasif" : "Promoter";
+    Color getColor(double value) => value < 7 ? Colors.red : value < 9 ? Colors.orange : Colors.green;
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8),
-      elevation: 2,
-      shadowColor: Colors.black12,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 3,
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              question,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                height: 1.3,
-              ),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(question, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 12),
+          Text("${currentAnswer.toStringAsFixed(0)} / 10 — ${getLabel(currentAnswer)}", style: TextStyle(color: getColor(currentAnswer), fontWeight: FontWeight.w600)),
+          const SizedBox(height: 8),
+          SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              activeTrackColor: const Color(0xFF4F46E5),
+              inactiveTrackColor: const Color(0xFF4F46E5).withOpacity(0.2),
+              thumbColor: const Color(0xFF4F46E5),
+              overlayColor: const Color(0xFF4F46E5).withOpacity(0.1),
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
             ),
-            const SizedBox(height: 12),
-            // Show score + NPS category with color
-            Text(
-              "${currentAnswer.toStringAsFixed(0)} / 10 — ${getLabel(currentAnswer)}",
-              style: TextStyle(
-                color: getLabelColor(currentAnswer),
-                fontWeight: FontWeight.w600,
-              ),
+            child: Slider(
+              value: currentAnswer,
+              divisions: 10,
+              min: 0,
+              max: 10,
+              label: currentAnswer.toStringAsFixed(0),
+              onChanged: (value) => setState(() => answers[index] = value),
             ),
-            const SizedBox(height: 8),
-            // Custom slider
-            SliderTheme(
-              data: SliderTheme.of(context).copyWith(
-                activeTrackColor: Colors.indigo,
-                inactiveTrackColor: Colors.indigo.withOpacity(0.2),
-                thumbColor: Colors.indigo,
-                overlayColor: Colors.indigo.withOpacity(0.1),
-                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
-                overlayShape: const RoundSliderOverlayShape(overlayRadius: 20),
-              ),
-              child: Slider(
-                value: currentAnswer,
-                divisions: 10,
-                min: 0,
-                max: 10,
-                label: currentAnswer.toStringAsFixed(0),
-                onChanged: (value) => setState(() => answers[index] = value),
-              ),
+          ),
+        ]),
+      ),
+    );
+  }
+
+  Widget _buildFeedbackCard() {
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text("Additional Feedback (Optional)", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF4F46E5))),
+          const SizedBox(height: 10),
+          TextField(
+            controller: _feedbackController,
+            maxLines: 3,
+            decoration: InputDecoration(
+              hintText: "Share your thoughts...",
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF4F46E5), width: 2)),
             ),
-          ],
-        ),
+          ),
+        ]),
       ),
     );
   }

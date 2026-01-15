@@ -1,14 +1,11 @@
-// lib/screens/survey_type_page.dart
+// lib/survey_type_page.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'package:flutter_cxapp/csat_page.dart';
-import 'package:flutter_cxapp/ces_page.dart';
-import 'package:flutter_cxapp/nps_page.dart';
+import 'package:flutter_cxapp/survey_info_page.dart'; // NEW
 
 class SurveyTypePage extends StatefulWidget {
   final String restaurantId;
   const SurveyTypePage({super.key, required this.restaurantId});
-
   @override
   State<SurveyTypePage> createState() => _SurveyTypePageState();
 }
@@ -27,13 +24,11 @@ class _SurveyTypePageState extends State<SurveyTypePage> {
   }
 
   Future<void> _checkSurveyStatus() async {
-    final snap =
-        await _db.child("restaurants/${widget.restaurantId}/surveys").get();
+    final snap = await _db.child("restaurants/${widget.restaurantId}/surveys").get();
     if (!snap.exists) {
       setState(() => loading = false);
       return;
     }
-
     final surveys = (snap.value as Map).cast<String, dynamic>();
     for (var s in surveys.values) {
       final survey = Map<String, dynamic>.from(s);
@@ -41,13 +36,7 @@ class _SurveyTypePageState extends State<SurveyTypePage> {
       if (survey["type"] == "CES") cesDone = true;
       if (survey["type"] == "NPS") npsDone = true;
     }
-
     setState(() => loading = false);
-  }
-
-  // ✅ Define color method with full block syntax to avoid IDE warnings
-  Color _getStatusColor(bool done) {
-    return done ? Colors.green : Colors.indigo;
   }
 
   @override
@@ -55,113 +44,61 @@ class _SurveyTypePageState extends State<SurveyTypePage> {
     if (loading) {
       return Scaffold(
         backgroundColor: const Color(0xfff8f9fa),
-        body: Center(child: CircularProgressIndicator(color: Colors.indigo)),
+        body: const Center(child: CircularProgressIndicator(color: Colors.indigo)),
       );
     }
-
     return Scaffold(
       backgroundColor: const Color(0xfff8f9fa),
       appBar: AppBar(
         backgroundColor: Colors.indigo,
         foregroundColor: Colors.white,
         title: const Text("Choose Survey Type"),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
+        leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: () => Navigator.pop(context)),
       ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              "Share Your Experience",
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.indigo,
-              ),
-            ),
+            const Text("Share Your Experience", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.indigo)),
             const SizedBox(height: 8),
-            const Text(
-              "Complete the surveys below to help us improve:",
-              style: TextStyle(fontSize: 16, color: Colors.black87),
-            ),
+            const Text("Complete the surveys below to help us improve:", style: TextStyle(fontSize: 16, color: Colors.black87)),
             const SizedBox(height: 24),
-
             _buildSurveyCard(
               title: "CSAT Survey",
               icon: Icons.star,
               description: "Rate your satisfaction with service, food, and overall experience.",
               isCompleted: csatDone,
-              onTap: () async {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => CSATPage(restaurantId: widget.restaurantId),
-                  ),
-                );
-                _checkSurveyStatus();
-              },
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => SurveyInfoPage(type: "CSAT", restaurantId: widget.restaurantId))),
             ),
             const SizedBox(height: 16),
-
             _buildSurveyCard(
               title: "CES Survey",
               icon: Icons.handshake,
               description: "Tell us how easy it was to order, get help, or resolve issues.",
               isCompleted: cesDone,
-              onTap: () async {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => CESPage(restaurantId: widget.restaurantId),
-                  ),
-                );
-                _checkSurveyStatus();
-              },
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => SurveyInfoPage(type: "CES", restaurantId: widget.restaurantId))),
             ),
             const SizedBox(height: 16),
-
             _buildSurveyCard(
               title: "NPS Survey",
               icon: Icons.thumb_up,
               description: "Would you recommend this restaurant to friends or family?",
               isCompleted: npsDone,
-              onTap: () async {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => NPSPage(restaurantId: widget.restaurantId),
-                  ),
-                );
-                _checkSurveyStatus();
-              },
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => SurveyInfoPage(type: "NPS", restaurantId: widget.restaurantId))),
             ),
-
             const Spacer(),
             Container(
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.indigo.withOpacity(0.04),
-                borderRadius: BorderRadius.circular(12),
-              ),
+              decoration: BoxDecoration(color: Colors.indigo.withOpacity(0.04), borderRadius: BorderRadius.circular(12)),
               child: Row(
                 children: [
-                  Icon(
-                    Icons.info_outline,
-                    color: Colors.indigo.withOpacity(0.7),
-                    size: 20,
-                  ),
+                  Icon(Icons.info_outline, color: Colors.indigo.withOpacity(0.7), size: 20),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       "Completed surveys are marked with a green badge. You may retake any survey.",
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.indigo.withOpacity(0.8),
-                      ),
+                      style: TextStyle(fontSize: 13, color: Colors.indigo.withOpacity(0.8)),
                     ),
                   ),
                 ],
@@ -182,14 +119,10 @@ class _SurveyTypePageState extends State<SurveyTypePage> {
     required VoidCallback onTap,
   }) {
     final cardColor = isCompleted ? Colors.green.shade50 : Colors.white;
-    final iconColor = _getStatusColor(isCompleted);
-
+    final iconColor = isCompleted ? Colors.green : Colors.indigo;
     return Card(
       elevation: 2,
-      shadowColor: Colors.black12,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       color: cardColor,
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
@@ -201,10 +134,7 @@ class _SurveyTypePageState extends State<SurveyTypePage> {
               Container(
                 width: 50,
                 height: 50,
-                decoration: BoxDecoration(
-                  color: iconColor.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
+                decoration: BoxDecoration(color: iconColor.withOpacity(0.1), shape: BoxShape.circle),
                 child: Icon(icon, color: iconColor, size: 28),
               ),
               const SizedBox(width: 16),
@@ -215,50 +145,20 @@ class _SurveyTypePageState extends State<SurveyTypePage> {
                     Row(
                       children: [
                         Expanded(
-                          child: Text(
-                            title,
-                            style: TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.bold,
-                              color: iconColor,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                          child: Text(title, style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: iconColor), maxLines: 1, overflow: TextOverflow.ellipsis),
                         ),
                         if (isCompleted)
                           Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.green,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Text(
-                              "Completed",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(color: Colors.green, borderRadius: BorderRadius.circular(12)),
+                            child: const Text("Completed", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
                           )
                         else
-                          Icon(Icons.arrow_forward_ios,
-                              size: 16, color: Colors.grey),
+                          const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
                       ],
                     ),
                     const SizedBox(height: 6),
-                    Text(
-                      description,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Colors.black54,
-                        height: 1.4,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                    Text(description, style: const TextStyle(fontSize: 14, color: Colors.black54, height: 1.4), maxLines: 2, overflow: TextOverflow.ellipsis),
                   ],
                 ),
               ),

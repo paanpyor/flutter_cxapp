@@ -1,3 +1,4 @@
+// lib/csat_page.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 
@@ -12,7 +13,6 @@ class CSATPage extends StatefulWidget {
 class _CSATPageState extends State<CSATPage> {
   final _db = FirebaseDatabase.instance.ref();
   final _feedbackController = TextEditingController();
-
   final List<String> questions = [
     "Adakah anda berpuas hati dengan layanan staf kami?",
     "Adakah makanan dihidang tepat pada masanya?",
@@ -20,7 +20,6 @@ class _CSATPageState extends State<CSATPage> {
     "Adakah harga makanan berpatutan?",
     "Adakah anda akan datang semula ke restoran ini?"
   ];
-
   Map<int, double> answers = {};
 
   Future<void> _submitSurvey() async {
@@ -30,32 +29,27 @@ class _CSATPageState extends State<CSATPage> {
       );
       return;
     }
-
-    final avgScore =
-        answers.values.reduce((a, b) => a + b) / answers.values.length;
-
+    final avgScore = answers.values.reduce((a, b) => a + b) / answers.values.length;
     await _db.child("restaurants/${widget.restaurantId}/surveys").push().set({
       "type": "CSAT",
       "csat": avgScore,
       "comment": _feedbackController.text.trim(),
       "date": DateTime.now().toIso8601String(),
     });
-
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Terima kasih atas maklum balas anda!")),
     );
-
     Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xfff8f9fa),
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        backgroundColor: Colors.indigo,
+        backgroundColor: const Color(0xFF4F46E5),
         foregroundColor: Colors.white,
-        title: const Text("CSAT Survey"),
+        title: const Text("Customer Satisfaction (CSAT)"),
         elevation: 0,
       ),
       body: Padding(
@@ -71,19 +65,14 @@ class _CSATPageState extends State<CSATPage> {
               ),
             ),
             const SizedBox(height: 20),
-
             for (int i = 0; i < questions.length; i++)
               _buildQuestionCard(i, questions[i]),
-
             const SizedBox(height: 20),
-
-            // Feedback text field
+            // Feedback Card
             Card(
               elevation: 2,
               shadowColor: Colors.black12,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -94,7 +83,7 @@ class _CSATPageState extends State<CSATPage> {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Colors.indigo,
+                        color: Color(0xFF4F46E5),
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -102,13 +91,15 @@ class _CSATPageState extends State<CSATPage> {
                       controller: _feedbackController,
                       decoration: InputDecoration(
                         hintText: "Share your thoughts...",
+                        filled: true,
+                        fillColor: Colors.white,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: const BorderSide(color: Colors.grey),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Colors.indigo, width: 2),
+                          borderSide: const BorderSide(color: Color(0xFF4F46E5), width: 2),
                         ),
                       ),
                       maxLines: 3,
@@ -118,27 +109,22 @@ class _CSATPageState extends State<CSATPage> {
                 ),
               ),
             ),
-
             const SizedBox(height: 24),
-
-            // Submit button
+            // Submit Button
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: _submitSurvey,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.indigo,
+                  backgroundColor: const Color(0xFF4F46E5),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
                 child: const Text("Submit Survey"),
               ),
             ),
-
             const SizedBox(height: 20),
           ],
         ),
@@ -149,7 +135,6 @@ class _CSATPageState extends State<CSATPage> {
   Widget _buildQuestionCard(int index, String question) {
     final currentAnswer = answers[index] ?? 0.0;
 
-    // Convert score to label (e.g., 0 = "Very Dissatisfied", 10 = "Very Satisfied")
     String getLabel(double value) {
       if (value <= 2) return "Tidak Puas";
       if (value <= 4) return "Kurang Puas";
@@ -162,9 +147,7 @@ class _CSATPageState extends State<CSATPage> {
       margin: const EdgeInsets.symmetric(vertical: 8),
       elevation: 2,
       shadowColor: Colors.black12,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -172,29 +155,23 @@ class _CSATPageState extends State<CSATPage> {
           children: [
             Text(
               question,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                height: 1.3,
-              ),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, height: 1.3),
             ),
             const SizedBox(height: 12),
-            // Show current rating label
             Text(
               "${currentAnswer.toStringAsFixed(0)} / 10 — ${getLabel(currentAnswer)}",
               style: TextStyle(
-                color: currentAnswer > 0 ? Colors.indigo : Colors.grey,
+                color: currentAnswer > 0 ? const Color(0xFF4F46E5) : Colors.grey,
                 fontWeight: FontWeight.w500,
               ),
             ),
             const SizedBox(height: 8),
-            // Slider
             SliderTheme(
               data: SliderTheme.of(context).copyWith(
-                activeTrackColor: Colors.indigo,
-                inactiveTrackColor: Colors.indigo.withOpacity(0.2),
-                thumbColor: Colors.indigo,
-                overlayColor: Colors.indigo.withOpacity(0.1),
+                activeTrackColor: const Color(0xFF4F46E5),
+                inactiveTrackColor: const Color(0xFF4F46E5).withOpacity(0.2),
+                thumbColor: const Color(0xFF4F46E5),
+                overlayColor: const Color(0xFF4F46E5).withOpacity(0.1),
                 thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
                 overlayShape: const RoundSliderOverlayShape(overlayRadius: 20),
               ),
