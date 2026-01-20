@@ -5,7 +5,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:geolocator/geolocator.dart'; // NEW: For getting current location
+import 'package:geolocator/geolocator.dart'; 
 import 'package:flutter_cxapp/image_upload_service.dart';
 
 class AddRestaurantPage extends StatefulWidget {

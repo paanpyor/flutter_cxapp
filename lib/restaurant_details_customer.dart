@@ -1,10 +1,12 @@
 // lib/restaurant_details_customer.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // Added for User ID
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter_cxapp/survey_type_page.dart';
+// Added for Date formatting
 
 class RestaurantDetailsCustomerPage extends StatefulWidget {
   final String restaurantId;
@@ -18,13 +20,23 @@ class RestaurantDetailsCustomerPage extends StatefulWidget {
 class _RestaurantDetailsCustomerPageState
     extends State<RestaurantDetailsCustomerPage> {
   final DatabaseReference _db = FirebaseDatabase.instance.ref();
+  final FirebaseAuth _auth = FirebaseAuth.instance; // Added Auth
+  
   Map<String, dynamic>? _restaurant;
   bool _loading = true;
+  
+  // Stats
   double _avgCSAT = 0.0;
   double _avgCES = 0.0;
   double _avgNPS = 0.0;
+  
+  // Location
   LatLng? _restaurantLocation;
   LatLng? _currentLocation;
+  
+  // Rating
+  int _currentRating = 0; // The user's rating (1-5)
+
   List<Map<String, dynamic>> _feedbackList = [];
 
   @override
@@ -39,16 +51,53 @@ class _RestaurantDetailsCustomerPageState
     if (snap.exists && snap.value is Map) {
       final data = Map<String, dynamic>.from(snap.value as Map);
       if (mounted) setState(() => _restaurant = data);
+      
       if (data["latitude"] != null && data["longitude"] != null) {
         _restaurantLocation = LatLng(
           (data["latitude"] as num).toDouble(),
           (data["longitude"] as num).toDouble(),
         );
       }
+      
       await _calculateAverages();
       await _loadFeedback();
+      await _loadUserRating(); // Load existing user rating
     }
     if (mounted) setState(() => _loading = false);
+  }
+
+  // --- NEW: Load User's specific rating ---
+  Future<void> _loadUserRating() async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    final ratingSnap = await _db.child("restaurants/${widget.restaurantId}/quickRatings/${user.uid}").get();
+    if (ratingSnap.exists) {
+      final data = ratingSnap.value as Map;
+      if (mounted) {
+        setState(() => _currentRating = (data["rating"] as num).toInt());
+      }
+    }
+  }
+
+  // --- NEW: Save Rating ---
+  Future<void> _saveRating(int rating) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    setState(() => _currentRating = rating);
+
+    await _db.child("restaurants/${widget.restaurantId}/quickRatings/${user.uid}").set({
+      "rating": rating,
+      "date": DateTime.now().toIso8601String(),
+    });
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("You rated this $rating stars!"), backgroundColor: Colors.indigo),
+      );
+    }
   }
 
   Future<void> _getCurrentLocation() async {
@@ -178,6 +227,8 @@ class _RestaurantDetailsCustomerPageState
                               ],
                             ),
                             const SizedBox(height: 24),
+                            
+                            // Start Survey Button
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton.icon(
@@ -191,6 +242,42 @@ class _RestaurantDetailsCustomerPageState
                                 ),
                               ),
                             ),
+
+                            // --- NEW: QUICK RATING SECTION ---
+                            const SizedBox(height: 24),
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 10)],
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  const Text("Rate your experience", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                                  const SizedBox(height: 8),
+                                  Text("Tap a star to rate", style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                                  const SizedBox(height: 12),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: List.generate(5, (index) {
+                                      return IconButton(
+                                        iconSize: 36,
+                                        splashRadius: 25,
+                                        onPressed: () => _saveRating(index + 1),
+                                        icon: Icon(
+                                          Icons.star,
+                                          color: index < _currentRating ? Colors.amber : Colors.grey[300],
+                                        ),
+                                      );
+                                    }),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            // -------------------------------------
+
                             const SizedBox(height: 32),
                             const Text("Insights", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                             const SizedBox(height: 16),

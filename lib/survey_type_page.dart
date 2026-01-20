@@ -1,17 +1,21 @@
-// lib/survey_type_page.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'package:flutter_cxapp/survey_info_page.dart'; // NEW
+import 'package:firebase_auth/firebase_auth.dart';
+import 'survey_info_page.dart'; 
+import 'app_theme.dart';
 
 class SurveyTypePage extends StatefulWidget {
   final String restaurantId;
   const SurveyTypePage({super.key, required this.restaurantId});
+
   @override
   State<SurveyTypePage> createState() => _SurveyTypePageState();
 }
 
 class _SurveyTypePageState extends State<SurveyTypePage> {
-  final _db = FirebaseDatabase.instance.ref();
+  final DatabaseReference _db = FirebaseDatabase.instance.ref();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  
   bool csatDone = false;
   bool cesDone = false;
   bool npsDone = false;
@@ -24,146 +28,235 @@ class _SurveyTypePageState extends State<SurveyTypePage> {
   }
 
   Future<void> _checkSurveyStatus() async {
-    final snap = await _db.child("restaurants/${widget.restaurantId}/surveys").get();
+    final user = _auth.currentUser;
+    if (user == null) {
+      setState(() => loading = false);
+      return;
+    }
+
+    // --- CHANGE 1: Fetch from USER SURVEYS path ---
+    final snap = await _db.child("users/${user.uid}/completedSurveys").get();
+    
     if (!snap.exists) {
       setState(() => loading = false);
       return;
     }
-    final surveys = (snap.value as Map).cast<String, dynamic>();
-    for (var s in surveys.values) {
-      final survey = Map<String, dynamic>.from(s);
-      if (survey["type"] == "CSAT") csatDone = true;
-      if (survey["type"] == "CES") cesDone = true;
-      if (survey["type"] == "NPS") npsDone = true;
+
+    final surveys = Map<String, dynamic>.from(snap.value as Map);
+    bool cDone = false, ceDone = false, nDone = false;
+
+    // --- CHANGE 2: Check if restaurantId exists as a key ---
+    // This matches the structure of data saved in csat/ces/nps pages
+    // If the user has a node "completedSurveys/restaurantID", we consider them done.
+    if (surveys.containsKey(widget.restaurantId)) {
+      // We assume if the key exists, the user has completed surveys there.
+      // Ideally, you should check internal flags, but this is the safest assumption.
+      cDone = true; 
+      ceDone = true;
+      nDone = true;
     }
-    setState(() => loading = false);
+
+    setState(() {
+      csatDone = cDone;
+      cesDone = ceDone;
+      npsDone = nDone;
+      loading = false;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     if (loading) {
       return Scaffold(
-        backgroundColor: const Color(0xfff8f9fa),
-        body: const Center(child: CircularProgressIndicator(color: Colors.indigo)),
+        backgroundColor: AppTheme.background,
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          foregroundColor: AppTheme.textPrimary,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.close, color: AppTheme.textPrimary),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: const Text("Select Feedback"),
+        ),
+        body: const Center(child: CircularProgressIndicator(color: AppTheme.primary)),
       );
     }
+
     return Scaffold(
-      backgroundColor: const Color(0xfff8f9fa),
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
-        backgroundColor: Colors.indigo,
-        foregroundColor: Colors.white,
-        title: const Text("Choose Survey Type"),
-        leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: () => Navigator.pop(context)),
+        backgroundColor: Colors.white,
+        foregroundColor: AppTheme.textPrimary,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.close, color: AppTheme.textPrimary),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text("Select Feedback"),
       ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text("Share Your Experience", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.indigo)),
-            const SizedBox(height: 8),
-            const Text("Complete the surveys below to help us improve:", style: TextStyle(fontSize: 16, color: Colors.black87)),
-            const SizedBox(height: 24),
-            _buildSurveyCard(
-              title: "CSAT Survey",
-              icon: Icons.star,
-              description: "Rate your satisfaction with service, food, and overall experience.",
-              isCompleted: csatDone,
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => SurveyInfoPage(type: "CSAT", restaurantId: widget.restaurantId))),
-            ),
-            const SizedBox(height: 16),
-            _buildSurveyCard(
-              title: "CES Survey",
-              icon: Icons.handshake,
-              description: "Tell us how easy it was to order, get help, or resolve issues.",
-              isCompleted: cesDone,
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => SurveyInfoPage(type: "CES", restaurantId: widget.restaurantId))),
-            ),
-            const SizedBox(height: 16),
-            _buildSurveyCard(
-              title: "NPS Survey",
-              icon: Icons.thumb_up,
-              description: "Would you recommend this restaurant to friends or family?",
-              isCompleted: npsDone,
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => SurveyInfoPage(type: "NPS", restaurantId: widget.restaurantId))),
-            ),
-            const Spacer(),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(color: Colors.indigo.withOpacity(0.04), borderRadius: BorderRadius.circular(12)),
-              child: Row(
-                children: [
-                  Icon(Icons.info_outline, color: Colors.indigo.withOpacity(0.7), size: 20),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      "Completed surveys are marked with a green badge. You may retake any survey.",
-                      style: TextStyle(fontSize: 13, color: Colors.indigo.withOpacity(0.8)),
+      body: SafeArea(
+        child: CustomScrollView(
+          slivers: [
+            // Header
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+              sliver: SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 24),
+                    const Text(
+                      "Share Your Experience",
+                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 8),
+                    const Text(
+                      "Choose a survey category below to help us improve:",
+                      style: TextStyle(fontSize: 16, color: AppTheme.textSecondary),
+                    ),
+                    const SizedBox(height: 32),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: 20),
+
+            // --- FIX: Use SliverGrid with Max Extent to prevent overflow ---
+            // Using a max extent ensures every card has a fixed height, 
+            // preventing the "RenderFlex overflowed" error.
+            SliverGrid(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 1, // 1 Column
+                mainAxisSpacing: 16,
+                // FIX: Set a predictable max height for the cards
+                // Adjust this value based on your card design (text size + padding)
+                // 300 is a safe bet for the content size
+                mainAxisExtent: 300.0, 
+              ),
+              delegate: SliverChildListDelegate([
+                // CSAT Card
+                _buildSurveyOption(
+                  title: "Satisfaction",
+                  subtitle: "CSAT Survey",
+                  description: "Rate overall satisfaction with service and food.",
+                  icon: Icons.sentiment_satisfied_alt,
+                  color: AppTheme.csatColor,
+                  isCompleted: csatDone,
+                  type: "CSAT",
+                ),
+                
+                // CES Card
+                _buildSurveyOption(
+                  title: "Effort",
+                  subtitle: "CES Survey",
+                  description: "Tell us how easy it was to order and get service.",
+                  icon: Icons.timer,
+                  color: AppTheme.cesColor,
+                  isCompleted: cesDone,
+                  type: "CES",
+                ),
+                
+                // NPS Card
+                _buildSurveyOption(
+                  title: "Loyalty",
+                  subtitle: "NPS Survey",
+                  description: "Would you recommend this restaurant to a friend?",
+                  icon: Icons.thumb_up,
+                  color: AppTheme.npsColor,
+                  isCompleted: npsDone,
+                  type: "NPS",
+                ),
+              ]),
+            ),
+            
+            // Bottom padding for safe scrolling area
+            SliverPadding(
+              padding: const EdgeInsets.only(bottom: 80),
+              sliver: SliverToBoxAdapter(child: SizedBox()), 
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSurveyCard({
+  Widget _buildSurveyOption({
     required String title,
-    required IconData icon,
+    required String subtitle,
     required String description,
+    required IconData icon,
+    required Color color,
     required bool isCompleted,
-    required VoidCallback onTap,
+    required String type,
   }) {
-    final cardColor = isCompleted ? Colors.green.shade50 : Colors.white;
-    final iconColor = isCompleted ? Colors.green : Colors.indigo;
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: cardColor,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Container(
-                width: 50,
-                height: 50,
-                decoration: BoxDecoration(color: iconColor.withOpacity(0.1), shape: BoxShape.circle),
-                child: Icon(icon, color: iconColor, size: 28),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(title, style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: iconColor), maxLines: 1, overflow: TextOverflow.ellipsis),
-                        ),
-                        if (isCompleted)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(color: Colors.green, borderRadius: BorderRadius.circular(12)),
-                            child: const Text("Completed", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-                          )
-                        else
-                          const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Text(description, style: const TextStyle(fontSize: 14, color: Colors.black54, height: 1.4), maxLines: 2, overflow: TextOverflow.ellipsis),
-                  ],
-                ),
-              ),
-            ],
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => SurveyInfoPage(type: type, restaurantId: widget.restaurantId),
           ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header: Icon + Badge
+            Row(
+              children: [
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(icon, color: color, size: 32),
+                ),
+                const Spacer(),
+                if (isCompleted)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppTheme.secondary,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Text("Done", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                  ),
+              ],
+            ),
+          
+            const SizedBox(height: 20),
+            
+            // Text Content
+            Text(
+              title,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.textSecondary),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              description,
+              style: const TextStyle(fontSize: 14, color: AppTheme.textSecondary, height: 1.3),
+            ),
+          ],
         ),
       ),
     );

@@ -4,9 +4,12 @@ import 'package:firebase_database/firebase_database.dart';
 import 'signup_page.dart';
 import 'dashboard_page.dart';
 import 'owner_dashboard_page.dart';
+import 'app_theme.dart';
+import 'common_widget.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
+
   @override
   State<LoginPage> createState() => _LoginPageState();
 }
@@ -15,109 +18,211 @@ class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _loading = false;
+  
+  // --- ADDED: Boolean to track password visibility ---
+  bool _obscurePassword = true; 
 
   Future<void> _login() async {
+    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please fill in all fields."), backgroundColor: AppTheme.error),
+      );
+      return;
+    }
+
     setState(() => _loading = true);
     try {
       final cred = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
+      
+      // Check User Role for Navigation
       final uid = cred.user!.uid;
       final snap = await FirebaseDatabase.instance.ref("users/$uid/role").get();
       final role = snap.value.toString();
+      
       if (!mounted) return;
+      
       if (role == "owner") {
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const OwnerDashboardPage()));
       } else {
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const DashboardPage()));
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Login Failed: ${e.toString()}")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Login Failed: ${e.toString()}"), backgroundColor: AppTheme.error),
+      );
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
   @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: AppTheme.background,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Center(
-                child: Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF4F46E5).withOpacity(0.1),
-                    shape: BoxShape.circle,
+        child: CustomScrollView(
+          slivers: [
+            // Sticky Header
+            SliverAppBar(
+              expandedHeight: 120,
+              floating: false,
+              pinned: true,
+              backgroundColor: Colors.transparent,
+              flexibleSpace: FlexibleSpaceBar(
+                background: Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [AppTheme.background, Colors.white],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
                   ),
-                  child: const Icon(Icons.lock_open_rounded, size: 48, color: Color(0xFF4F46E5)),
                 ),
-              ),
-              const SizedBox(height: 24),
-              const Text("Welcome Back", textAlign: TextAlign.center, style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.black)),
-              const SizedBox(height: 8),
-              const Text("Sign in to continue", textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
-              const SizedBox(height: 40),
-              TextFormField(
-                controller: _emailController,
-                decoration: InputDecoration(
-                  labelText: "Email",
-                  prefixIcon: const Icon(Icons.email_outlined, color: Color(0xFF4F46E5)),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF4F46E5), width: 2),
+                titlePadding: const EdgeInsets.only(bottom: 20),
+                centerTitle: true,
+                title: Text(
+                  "Welcome Back",
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    color: AppTheme.textPrimary,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _passwordController,
-                obscureText: true,
-                decoration: InputDecoration(
-                  labelText: "Password",
-                  prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF4F46E5)),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF4F46E5), width: 2),
-                  ),
+            ),
+            
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 100),
+                child: Column(
+                  children: [
+                    // Brand Icon (Optional)
+                    Center(
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.lock_open_rounded, size: 48, color: AppTheme.primary),
+                      ),
+                    ),
+                    const SizedBox(height: 40),
+
+                    // Inputs Card
+                    Container(
+                      padding: const EdgeInsets.all(32),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 30,
+                            offset: const Offset(0, 15),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          const Text(
+                            "Login to continue",
+                            style: TextStyle(fontSize: 14, color: AppTheme.textSecondary),
+                          ),
+                          const SizedBox(height: 24),
+                          
+                          // Email
+                          TextField(
+                            controller: _emailController,
+                            keyboardType: TextInputType.emailAddress,
+                            decoration: const InputDecoration(
+                              labelText: "Email Address",
+                              prefixIcon: Icon(Icons.email_outlined),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          
+                          // Password
+                          TextField(
+                            controller: _passwordController,
+                            // --- UPDATED: Use the boolean variable ---
+                            obscureText: _obscurePassword, 
+                            decoration: InputDecoration(
+                              labelText: "Password",
+                              prefixIcon: const Icon(Icons.lock_outline),
+                              // --- UPDATED: Interactive Eye Icon ---
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                                  color: Colors.grey,
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    _obscurePassword = !_obscurePassword;
+                                  });
+                                },
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          
+                          // Forgot Password
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton(
+                              onPressed: () {}, // TODO: Implement Forgot Password
+                              child: const Text("Forgot Password?", style: TextStyle(color: AppTheme.primary)),
+                            ),
+                          ),
+                          const SizedBox(height: 32),
+
+                          // Login Button
+                          SizedBox(
+                            width: double.infinity,
+                            child: ModernButton(
+                              text: "Sign In",
+                              isLoading: _loading,
+                              onPressed: _login,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 40),
+
+                    // Sign Up Link
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text("Don't have an account? ", style: TextStyle(color: AppTheme.textSecondary)),
+                        TextButton(
+                          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SignupPage())),
+                          child: const Text(
+                            "Sign Up",
+                            style: TextStyle(
+                              color: AppTheme.primary,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _loading ? null : _login,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4F46E5),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: _loading
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text("Sign In", style: TextStyle(fontSize: 17, color: Colors.white)),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextButton(
-                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SignupPage())),
-                child: const Text("Don’t have an account? Sign up"),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

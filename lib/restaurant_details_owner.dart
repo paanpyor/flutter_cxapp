@@ -2,12 +2,13 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter_cxapp/qr_generate_page.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:flutter_cxapp/report_generator.dart'; // ← Required for PDF
-import 'package:printing/printing.dart'; // ← Required for sharing
-import 'dart:io'; // ← Required for file handling
+import 'package:flutter_cxapp/report_generator.dart'; // Required for PDF
+import 'package:printing/printing.dart'; // Required for sharing
+// <--- ADDED IMPORT FOR QR PAGE
 
 class RestaurantDetailsOwnerPage extends StatefulWidget {
   final String restaurantId;
@@ -227,7 +228,6 @@ class _RestaurantDetailsOwnerPageState
   return analysis.toString();
 }
 
-  // ✅ NEW: Generate and download PDF Report
   Future<void> _generateAndDownloadReport() async {
     if (_avgNPS == 0 && _avgCSAT == 0 && _avgCES == 0) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -250,6 +250,7 @@ class _RestaurantDetailsOwnerPageState
 
       final file = await report.generatePdf();
 
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('✅ Report saved!'),
@@ -265,11 +266,13 @@ class _RestaurantDetailsOwnerPageState
         ),
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("❌ Failed to generate report: $e")),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("❌ Failed to generate report: $e")),
+        );
+      }
     } finally {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -281,6 +284,23 @@ class _RestaurantDetailsOwnerPageState
         title: const Text("Restaurant Insights"),
         backgroundColor: Colors.indigo,
         actions: [
+          // --- NEW: QR CODE BUTTON ---
+          IconButton(
+            icon: const Icon(Icons.qr_code_2, color: Colors.white),
+            tooltip: 'Generate Survey QR',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => QrGeneratorPage(
+                    restaurantId: widget.restaurantId,
+                    restaurantName: _restaurant?["name"] ?? "Unknown Restaurant",
+                  ),
+                ),
+              );
+            },
+          ),
+          // --- EXISTING: PDF BUTTON ---
           IconButton(
             icon: const Icon(Icons.picture_as_pdf, color: Colors.white),
             onPressed: _generateAndDownloadReport,
